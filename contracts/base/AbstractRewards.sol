@@ -12,6 +12,8 @@ abstract contract AbstractRewards is IAbstractRewards {
 /* ========  Constants  ======== */
   uint128 public constant POINTS_MULTIPLIER = type(uint128).max;
 
+  event PointsCorrectionUpdated(address indexed account, int256 points);
+
 /* ========  Internal Function References  ======== */
   function(address) view returns (uint256) private immutable getSharesOf;
   function() view returns (uint256) private immutable getTotalShares;
@@ -105,6 +107,9 @@ abstract contract AbstractRewards is IAbstractRewards {
     int256 _magCorrection = (pointsPerShare * _shares).toInt256();
     pointsCorrection[_from] = pointsCorrection[_from] + _magCorrection;
     pointsCorrection[_to] = pointsCorrection[_to] - _magCorrection;
+
+    emit PointsCorrectionUpdated(_from, pointsCorrection[_from]);
+    emit PointsCorrectionUpdated(_to, pointsCorrection[_to]);
   }
 
   /**
@@ -116,5 +121,6 @@ abstract contract AbstractRewards is IAbstractRewards {
     require(_shares != 0, "AbstractRewards._correctPoints: shares cannot be zero");
 
     pointsCorrection[_account] = pointsCorrection[_account] + (_shares * (pointsPerShare.toInt256()));
+    emit PointsCorrectionUpdated(_account, pointsCorrection[_account]);
   }
 }
