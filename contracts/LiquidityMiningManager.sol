@@ -84,6 +84,9 @@ contract LiquidityMiningManager is TokenSaver {
         pools.pop();
         poolAdded[poolAddress] = false;
 
+        // Approve 0 token amount
+        reward.safeApprove(poolAddress, 0);
+
         emit PoolRemoved(_poolId, poolAddress);
     }
 
