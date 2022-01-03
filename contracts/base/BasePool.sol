@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "../interfaces/IBasePool.sol";
 import "../interfaces/ITimeLockPool.sol";
@@ -12,7 +13,7 @@ import "../interfaces/ITimeLockPool.sol";
 import "./AbstractRewards.sol";
 import "./TokenSaver.sol";
 
-abstract contract BasePool is ERC20Votes, AbstractRewards, IBasePool, TokenSaver {
+abstract contract BasePool is ERC20Votes, AbstractRewards, IBasePool, TokenSaver, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
     using SafeCast for int256;
@@ -62,7 +63,7 @@ abstract contract BasePool is ERC20Votes, AbstractRewards, IBasePool, TokenSaver
         _correctPointsForTransfer(_from, _to, _value);
 	}
 
-    function distributeRewards(uint256 _amount) external override {
+    function distributeRewards(uint256 _amount) external override nonReentrant {
         rewardToken.safeTransferFrom(_msgSender(), address(this), _amount);
         _distributeRewards(_amount);
     }

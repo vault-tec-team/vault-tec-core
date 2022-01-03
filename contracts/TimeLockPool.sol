@@ -42,7 +42,7 @@ contract TimeLockPool is BasePool, ITimeLockPool {
     event Deposited(uint256 amount, uint256 duration, address indexed receiver, address indexed from);
     event Withdrawn(uint256 indexed depositId, address indexed receiver, address indexed from, uint256 amount);
 
-    function deposit(uint256 _amount, uint256 _duration, address _receiver) external override {
+    function deposit(uint256 _amount, uint256 _duration, address _receiver) external override nonReentrant {
         require(_receiver != address(0), "TimeLockPool.deposit: receiver cannot be zero address");
         require(_amount > 0, "TimeLockPool.deposit: cannot deposit 0");
         // Don't allow locking > maxLockDuration
