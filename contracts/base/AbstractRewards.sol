@@ -87,6 +87,8 @@ abstract contract AbstractRewards is IAbstractRewards {
    * greater than 0.
    */
   function _prepareCollect(address _account) internal returns (uint256) {
+    require(_account != address(0), "AbstractRewards._prepareCollect: account cannot be zero address");
+
     uint256 _withdrawableDividend = withdrawableRewardsOf(_account);
     if (_withdrawableDividend > 0) {
       withdrawnRewards[_account] = withdrawnRewards[_account] + _withdrawableDividend;
@@ -96,6 +98,10 @@ abstract contract AbstractRewards is IAbstractRewards {
   }
 
   function _correctPointsForTransfer(address _from, address _to, uint256 _shares) internal {
+    require(_from != address(0), "AbstractRewards._correctPointsForTransfer: address cannot be zero address");
+    require(_to != address(0), "AbstractRewards._correctPointsForTransfer: address cannot be zero address");
+    require(_shares != 0, "AbstractRewards._correctPointsForTransfer: shares cannot be zero");
+
     int256 _magCorrection = (pointsPerShare * _shares).toInt256();
     pointsCorrection[_from] = pointsCorrection[_from] + _magCorrection;
     pointsCorrection[_to] = pointsCorrection[_to] - _magCorrection;
@@ -106,6 +112,9 @@ abstract contract AbstractRewards is IAbstractRewards {
    * `shares*pointsPerShare`.
    */
   function _correctPoints(address _account, int256 _shares) internal {
+    require(_account != address(0), "AbstractRewards._correctPoints: account cannot be zero address");
+    require(_shares != 0, "AbstractRewards._correctPoints: shares cannot be zero");
+
     pointsCorrection[_account] = pointsCorrection[_account] + (_shares * (pointsPerShare.toInt256()));
   }
 }

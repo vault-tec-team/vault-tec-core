@@ -43,6 +43,7 @@ contract TimeLockPool is BasePool, ITimeLockPool {
     event Withdrawn(uint256 indexed depositId, address indexed receiver, address indexed from, uint256 amount);
 
     function deposit(uint256 _amount, uint256 _duration, address _receiver) external override {
+        require(_receiver != address(0), "TimeLockPool.deposit: receiver cannot be zero address");
         require(_amount > 0, "TimeLockPool.deposit: cannot deposit 0");
         // Don't allow locking > maxLockDuration
         uint256 duration = _duration.min(maxLockDuration);
@@ -64,6 +65,7 @@ contract TimeLockPool is BasePool, ITimeLockPool {
     }
 
     function withdraw(uint256 _depositId, address _receiver) external {
+        require(_receiver != address(0), "TimeLockPool.withdraw: receiver cannot be zero address");
         require(_depositId < depositsOf[_msgSender()].length, "TimeLockPool.withdraw: Deposit does not exist");
         Deposit memory userDeposit = depositsOf[_msgSender()][_depositId];
         require(block.timestamp >= userDeposit.end, "TimeLockPool.withdraw: too soon");
