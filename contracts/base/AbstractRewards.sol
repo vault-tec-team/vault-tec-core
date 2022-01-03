@@ -106,6 +106,6 @@ abstract contract AbstractRewards is IAbstractRewards {
    * `shares*pointsPerShare`.
    */
   function _correctPoints(address _account, int256 _shares) internal {
-    pointsCorrection[_account] = pointsCorrection[_account] + (_shares * (int256(pointsPerShare)));
+    pointsCorrection[_account] = pointsCorrection[_account] + (_shares * (pointsPerShare.toInt256()));
   }
 }
