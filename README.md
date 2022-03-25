@@ -1,7 +1,6 @@
-# Vault.Inc
+# [Vault.Inc](https://vault.inc/#/)
 
 Vault.Inc is a decentralized protocol that empowers projects with staking & locking mechanism.
-https://vault.inc/#/
 
 ## V1
 Inspired by the Merit Circle, Vault.Inc uses a similiar structure to reward long-term stakers by adding a time-weighted element for calculating rewards.
