@@ -109,7 +109,16 @@ abstract contract MultiRewardsBasePool is ERC20Votes, AbstractMultiRewards, IMul
         return rewardTokens.length;
     }
 
-    function addRewardToken(address _reward, address _escrowPool, uint256 _escrowPortion, uint256 _escrowDuration) external onlyAdmin {
+    function addRewardToken(
+        address _reward, 
+        address _escrowPool, 
+        uint256 _escrowPortion, 
+        uint256 _escrowDuration) 
+        external onlyAdmin 
+    {
+        require(_reward != address(0), "MultiRewardsBasePool.addRewardToken: reward token cannot be zero address");
+        require(_escrowPortion <= 1e18, "MultiRewardsBasePool.addRewardToken: Cannot escrow more than 100%");
+
         if (!rewardTokensList[_reward]) {
             rewardTokensList[_reward] = true;
             rewardTokens.push(_reward);

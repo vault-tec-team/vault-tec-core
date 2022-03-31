@@ -15,6 +15,7 @@ contract TimeLockPool is BasePool, ITimeLockPool {
     uint256 public immutable maxBonus;
     uint256 public immutable maxLockDuration;
     uint256 public constant MIN_LOCK_DURATION = 10 minutes;
+    uint256 public constant MAX_LOCK_DURATION = 36500 days;
     
     mapping(address => Deposit[]) public depositsOf;
 
@@ -34,6 +35,7 @@ contract TimeLockPool is BasePool, ITimeLockPool {
         uint256 _maxBonus,
         uint256 _maxLockDuration
     ) BasePool(_name, _symbol, _depositToken, _rewardToken, _escrowPool, _escrowPortion, _escrowDuration) {
+        require(_maxLockDuration <= MAX_LOCK_DURATION, "TimeLockPool.constructor: max lock duration must be less than or equal to maximum lock duration");
         require(_maxLockDuration >= MIN_LOCK_DURATION, "TimeLockPool.constructor: max lock duration must be greater or equal to mininmum lock duration");
         maxBonus = _maxBonus;
         maxLockDuration = _maxLockDuration;
@@ -64,7 +66,7 @@ contract TimeLockPool is BasePool, ITimeLockPool {
         emit Deposited(_amount, duration, _receiver, _msgSender());
     }
 
-    function withdraw(uint256 _depositId, address _receiver) external {
+    function withdraw(uint256 _depositId, address _receiver) external nonReentrant {
         require(_receiver != address(0), "TimeLockPool.withdraw: receiver cannot be zero address");
         require(_depositId < depositsOf[_msgSender()].length, "TimeLockPool.withdraw: Deposit does not exist");
         Deposit memory userDeposit = depositsOf[_msgSender()][_depositId];

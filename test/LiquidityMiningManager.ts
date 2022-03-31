@@ -79,7 +79,7 @@ describe("LiquidityMiningManager", function () {
                     ESCROW_PORTION,
                     ESCROW_DURATION,
                     0,
-                    ESCROW_PORTION
+                    ESCROW_DURATION
                 )
             );         
         }

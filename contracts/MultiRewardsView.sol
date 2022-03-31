@@ -111,5 +111,4 @@ contract MultiRewardsView {
         } 
 
     }
-
 }
