@@ -3,8 +3,8 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import hre from "hardhat";
-import { TestToken__factory, TimeLockNonTransferablePool__factory } from "../typechain";
-import { TestToken } from "../typechain";
+import { TestERC20__factory, TimeLockNonTransferablePool__factory } from "../typechain";
+import { TestERC20 } from "../typechain";
 import { TimeLockNonTransferablePool } from "../typechain/TimeLockNonTransferablePool";
 import TimeTraveler from "../utils/TimeTraveler";
 
@@ -26,8 +26,8 @@ describe("TimeLockNonTransferablePool", function () {
 
     let timeLockPool: TimeLockNonTransferablePool;
     let escrowPool: TimeLockNonTransferablePool;
-    let depositToken: TestToken;
-    let rewardToken: TestToken;
+    let depositToken: TestERC20;
+    let rewardToken: TestERC20;
     
     const timeTraveler = new TimeTraveler(hre.network.provider);
 
@@ -41,7 +41,7 @@ describe("TimeLockNonTransferablePool", function () {
             ...signers
         ] = await hre.ethers.getSigners();
 
-        const testTokenFactory = await new TestToken__factory(deployer);
+        const testTokenFactory = await new TestERC20__factory(deployer);
 
         depositToken = await testTokenFactory.deploy("DPST", "Deposit Token");
         rewardToken = await testTokenFactory.deploy("RWRD", "Reward Token");

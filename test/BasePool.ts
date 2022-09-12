@@ -6,8 +6,8 @@ import hre from "hardhat";
 import {    
     TestBasePool,
     TestBasePool__factory,
-    TestToken,
-    TestToken__factory,
+    TestERC20,
+    TestERC20__factory,
     TimeLockPool,
     TimeLockPool__factory
 } from "../typechain";
@@ -33,8 +33,8 @@ describe("BasePool", function () {
 
     let basePool: TestBasePool;
     let escrowPool: TimeLockPool;
-    let depositToken: TestToken;
-    let rewardToken: TestToken;
+    let depositToken: TestERC20;
+    let rewardToken: TestERC20;
 
     const timeTraveler = new TimeTraveler(hre.network.provider);
 
@@ -48,7 +48,7 @@ describe("BasePool", function () {
             ...signers
         ] = await hre.ethers.getSigners();
 
-        const testTokenFactory = new TestToken__factory(deployer);
+        const testTokenFactory = new TestERC20__factory(deployer);
 
         depositToken = (await testTokenFactory.deploy("DPST", "Deposit Token")).connect(account1);
         rewardToken = (await testTokenFactory.deploy("RWRD", "Reward Token")).connect(account1);

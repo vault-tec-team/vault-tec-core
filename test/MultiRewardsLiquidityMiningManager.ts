@@ -3,8 +3,8 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import hre from "hardhat";
-import { MultiRewardsLiquidityMiningManager, MultiRewardsLiquidityMiningManager__factory, TestToken__factory, MultiRewardsTimeLockNonTransferablePool__factory, TimeLockNonTransferablePool__factory } from "../typechain";
-import { TestToken } from "../typechain";
+import { MultiRewardsLiquidityMiningManager, MultiRewardsLiquidityMiningManager__factory, TestERC20__factory, MultiRewardsTimeLockNonTransferablePool__factory, TimeLockNonTransferablePool__factory } from "../typechain";
+import { TestERC20 } from "../typechain";
 import { MultiRewardsTimeLockNonTransferablePool } from "../typechain/MultiRewardsTimeLockNonTransferablePool";
 import { TimeLockNonTransferablePool } from "../typechain/TimeLockNonTransferablePool";
 import TimeTraveler from "../utils/TimeTraveler";
@@ -28,9 +28,9 @@ describe("LiquidityMiningManager - MultiRewards", function () {
     let account4: SignerWithAddress;
     let signers: SignerWithAddress[];
 
-    let depositToken: TestToken;
-    let rewardToken1: TestToken;
-    let rewardToken2: TestToken;
+    let depositToken: TestERC20;
+    let rewardToken1: TestERC20;
+    let rewardToken2: TestERC20;
 
     const pools: MultiRewardsTimeLockNonTransferablePool[] = [];
     let escrowPool1: TimeLockNonTransferablePool;
@@ -52,7 +52,7 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             ...signers
         ] = await hre.ethers.getSigners();
         
-        const testTokenFactory = new TestToken__factory(deployer);
+        const testTokenFactory = new TestERC20__factory(deployer);
 
         depositToken = await testTokenFactory.deploy("Deposit Token", "DPST");
         rewardToken1 = await testTokenFactory.deploy("Reward Token 1", "RWRD1");

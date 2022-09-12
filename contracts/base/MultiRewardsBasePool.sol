@@ -132,6 +132,20 @@ abstract contract MultiRewardsBasePool is ERC20Votes, AbstractMultiRewards, IMul
         }
     }
 
+    function updateRewardToken(address _reward, address _escrowPool, uint256 _escrowPortion, uint256 _escrowDuration) external onlyAdmin {
+        require(rewardTokensList[_reward], "MultiRewardsBasePool.updateRewardToken: reward token not in the list");
+        require(_reward != address(0), "MultiRewardsBasePool.updateRewardToken: reward token cannot be zero address");
+        require(_escrowPortion <= 1e18, "MultiRewardsBasePool.updateRewardToken: Cannot escrow more than 100%");
+
+        
+        if (escrowPools[_reward] != _escrowPool && _escrowPool != address(0)) {
+            IERC20(_reward).safeApprove(_escrowPool, type(uint256).max);
+        }
+        escrowPools[_reward] = _escrowPool;
+        escrowPortions[_reward] = _escrowPortion;
+        escrowDurations[_reward] = _escrowDuration;
+    }
+
     function distributeRewards(address _reward, uint256 _amount) external override nonReentrant {
         IERC20(_reward).safeTransferFrom(_msgSender(), address(this), _amount);
         _distributeRewards(_reward, _amount);

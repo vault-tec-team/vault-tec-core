@@ -4,8 +4,8 @@ import { expect } from "chai";
 import { SSL_OP_SSLEAY_080_CLIENT_DH_BUG } from "constants";
 import { BigNumber, constants } from "ethers";
 import hre from "hardhat";
-import { TestToken__factory, TimeLockPool__factory, MultiRewardsTimeLockPool__factory } from "../typechain";
-import { TestToken } from "../typechain";
+import { TestERC20__factory, TimeLockPool__factory, MultiRewardsTimeLockPool__factory } from "../typechain";
+import { TestERC20 } from "../typechain";
 import { TimeLockPool } from "../typechain/TimeLockPool";
 import { MultiRewardsTimeLockPool } from "../typechain/MultiRewardsTimeLockPool";
 import TimeTraveler from "../utils/TimeTraveler";
@@ -28,9 +28,9 @@ describe("TimeLockPool - MultiRewards", function () {
     let timeLockPool: MultiRewardsTimeLockPool;
     let escrowPool1: TimeLockPool;
     let escrowPool2: TimeLockPool;
-    let depositToken: TestToken;
-    let rewardToken1: TestToken;
-    let rewardToken2: TestToken;
+    let depositToken: TestERC20;
+    let rewardToken1: TestERC20;
+    let rewardToken2: TestERC20;
 
     const timeTraveler = new TimeTraveler(hre.network.provider);
 
@@ -44,7 +44,7 @@ describe("TimeLockPool - MultiRewards", function () {
             ...signers
         ] = await hre.ethers.getSigners();
 
-        const testTokenFactory = await new TestToken__factory(deployer);
+        const testTokenFactory = await new TestERC20__factory(deployer);
 
         depositToken = await testTokenFactory.deploy("Deposit Token", "DPST");
         rewardToken1 = await testTokenFactory.deploy("Reward Token 1", "RWRD1");

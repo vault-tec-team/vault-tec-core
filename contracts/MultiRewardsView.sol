@@ -47,6 +47,7 @@ contract MultiRewardsView {
         uint256 lastDistribution = liquidityMiningManager.lastDistribution();
         uint256 pendingRewards = rewardPerSecond * (block.timestamp - lastDistribution);
 
+        result.pendingRewards = pendingRewards;
         result.totalWeight = liquidityMiningManager.totalWeight();
 
         MultiRewardsLiquidityMiningManager.Pool[] memory pools = liquidityMiningManager.getPools();

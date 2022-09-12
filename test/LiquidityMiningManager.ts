@@ -3,8 +3,8 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import hre from "hardhat";
-import { LiquidityMiningManager, LiquidityMiningManager__factory, TestToken__factory, TimeLockNonTransferablePool__factory } from "../typechain";
-import { TestToken } from "../typechain";
+import { LiquidityMiningManager, LiquidityMiningManager__factory, TestERC20__factory, TimeLockNonTransferablePool__factory } from "../typechain";
+import { TestERC20 } from "../typechain";
 import { TimeLockNonTransferablePool } from "../typechain/TimeLockNonTransferablePool";
 import TimeTraveler from "../utils/TimeTraveler";
 
@@ -23,8 +23,8 @@ describe("LiquidityMiningManager", function () {
     let account4: SignerWithAddress;
     let signers: SignerWithAddress[];
 
-    let depositToken: TestToken;
-    let rewardToken: TestToken;
+    let depositToken: TestERC20;
+    let rewardToken: TestERC20;
     const pools: TimeLockNonTransferablePool[] = [];
     let escrowPool: TimeLockNonTransferablePool;
     let liquidityMiningManager: LiquidityMiningManager;
@@ -42,7 +42,7 @@ describe("LiquidityMiningManager", function () {
             ...signers
         ] = await hre.ethers.getSigners();
         
-        const testTokenFactory = new TestToken__factory(deployer);
+        const testTokenFactory = new TestERC20__factory(deployer);
 
         depositToken = await testTokenFactory.deploy("Deposit Token", "DPST");
         rewardToken = await testTokenFactory.deploy("Reward Token", "RWRD");

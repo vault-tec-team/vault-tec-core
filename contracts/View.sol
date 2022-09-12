@@ -46,6 +46,7 @@ contract View {
         uint256 lastDistribution = liquidityMiningManager.lastDistribution();
         uint256 pendingRewards = rewardPerSecond * (block.timestamp - lastDistribution);
 
+        result.pendingRewards = pendingRewards;
         result.totalWeight = liquidityMiningManager.totalWeight();
 
         LiquidityMiningManager.Pool[] memory pools = liquidityMiningManager.getPools();
