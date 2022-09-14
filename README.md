@@ -24,3 +24,16 @@ Rewards are subject to a lock duration as specified by each project. And the amo
 Updates
 * Add multi-rewards support for time lock pools.
 * Different rewards will be distributed using different MultiRewardsLiquidityMiningManager and parameters can be set separately.
+
+## NFT Staking
+Vault.Inc adds support for ERC721 staking.
+
+**For projects:**
+* Project team can decide which NFT can be staked
+* Project team can decide which stakedNFT to issue as a certificate for the original staked NFT.
+* Project team can decide the maximum lockup period.
+
+**For users:**
+* User can stake their NFT and choose for a certain lockup. And will be issued a stakedNFT (as a certificate) with the same token id and with locking information on it.
+* User can only unstake their NFT after the lockup duration. The stakedNFT will be burned and the original NFT will be returned to user's wallet.
+* The stakedNFT will be non-transferrable by default. Admin user with PAUSER_ROLE can turn on the trasfer ability in the future if needed.
