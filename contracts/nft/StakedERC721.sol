@@ -3,16 +3,17 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "./interfaces/IStakedERC721.sol";
 
-contract StakedERC721 is IStakedERC721, ERC721Enumerable, Pausable, AccessControlEnumerable {
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+contract StakedERC721 is IStakedERC721, ERC721Enumerable, AccessControlEnumerable {
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     mapping(uint256 => StakedInfo) private _stakedInfos;
+
+    bool private _transferrable;
 
     constructor(string memory name, string memory symbol) 
         ERC721(
@@ -21,12 +22,12 @@ contract StakedERC721 is IStakedERC721, ERC721Enumerable, Pausable, AccessContro
         )
     {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _setupRole(PAUSER_ROLE, msg.sender);
-        _pause(); //default pause
+        _setupRole(ADMIN_ROLE, msg.sender);
+        _transferrable = false; //default non-transferrable
     }
 
-    modifier onlyPauser() {
-        require(hasRole(PAUSER_ROLE, _msgSender()), "StakedERC721.onlyPauser: permission denied");
+    modifier onlyAdmin() {
+        require(hasRole(ADMIN_ROLE, _msgSender()), "StakedERC721.onlyAdmin: permission denied");
         _;
     }
 
@@ -40,18 +41,22 @@ contract StakedERC721 is IStakedERC721, ERC721Enumerable, Pausable, AccessContro
         _;
     }
 
-    function pause() public override onlyPauser() {
-        _pause();
+    function disableTransfer() external override onlyAdmin() {
+        _transferrable = false;
     }
 
-    function unpause() public override onlyPauser() {
-        _unpause();
+    function enableTransfer() external override onlyAdmin() {
+       _transferrable = true;
+    }
+
+    function transferrable() public view virtual returns (bool) {
+        return _transferrable;
     }
 
     function safeMint(address to, uint256 tokenId, StakedInfo memory stakedInfo) 
         public 
         override 
-        onlyMinter()
+        onlyMinter
     {
         require(
             stakedInfo.end >= stakedInfo.start, 
@@ -68,7 +73,7 @@ contract StakedERC721 is IStakedERC721, ERC721Enumerable, Pausable, AccessContro
     function burn(uint256 tokenId) 
         public 
         override 
-        onlyBurner()
+        onlyBurner
     {
         StakedInfo storage stakedInfo = _stakedInfos[tokenId];
         require(block.timestamp >= stakedInfo.end, "StakedERC721.burn: Too soon.");
@@ -83,9 +88,9 @@ contract StakedERC721 is IStakedERC721, ERC721Enumerable, Pausable, AccessContro
 
     function _transfer(address from, address to, uint256 tokenId)
         internal
-        whenNotPaused
         override
     {
+        require(transferrable(), "StakedERC721._transfer: not transferrable");
         super._transfer(from, to, tokenId);
     }
 

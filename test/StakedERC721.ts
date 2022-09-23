@@ -38,57 +38,41 @@ describe("StakedERC721", function () {
         await timeTraveler.revertSnapshot();
     });
 
-    describe("Pause", async() => {
+    describe("Transferrable", async() => {
 
-        it("Default pause", async() => {
+        it("Default not transferrable", async() => {
             const stakedERC721Factory = await new StakedERC721__factory(deployer);
             const newStakedNFT = await stakedERC721Factory.deploy("NewTestNFT", "NTNFT");
-            expect(await newStakedNFT.connect(account1).paused()).to.eq(true);
+            expect(await newStakedNFT.connect(account1).transferrable()).to.eq(false);
         });
 
-        it("User without pauser role cannot pause", async() => {
-            await expect(stakedNFT.connect(account1).pause()).to.be.revertedWith("StakedERC721.onlyPauser: permission denied");
+        it("User without admin role cannot enable/disable transfer", async() => {
+            await expect(stakedNFT.connect(account1).disableTransfer()).to.be.revertedWith("StakedERC721.onlyAdmin: permission denied");
+            await expect(stakedNFT.connect(account1).enableTransfer()).to.be.revertedWith("StakedERC721.onlyAdmin: permission denied");
         });
 
-        it("Cannot be paused when it's already paused", async() => {
-            const pauserRole = await stakedNFT.PAUSER_ROLE();
-            await stakedNFT.grantRole(pauserRole, account1.address);  
-            await expect(stakedNFT.connect(account1).pause()).to.be.revertedWith("Pausable: paused");      
+        it("User with admin role can successfully enable transfer", async() => {
+            expect(await stakedNFT.connect(account1).transferrable()).to.eq(false);
+
+            const adminRole = await stakedNFT.ADMIN_ROLE();
+            await stakedNFT.grantRole(adminRole, account1.address);
+
+            await stakedNFT.connect(account1).enableTransfer();
+            expect(await stakedNFT.connect(account1).transferrable()).to.eq(true);
         });
 
-        it("User with pauser role can successfully pause", async() => {
-            await stakedNFT.connect(deployer).unpause();
+        it("User with admin role can successfully disable transfer", async() => {
+            expect(await stakedNFT.connect(account1).transferrable()).to.eq(false);
 
-            const pauserRole = await stakedNFT.PAUSER_ROLE();
-            await stakedNFT.grantRole(pauserRole, account1.address);
+            const adminRole = await stakedNFT.ADMIN_ROLE();
+            await stakedNFT.grantRole(adminRole, account1.address);
 
-            await stakedNFT.connect(account1).pause();
-            expect(await stakedNFT.connect(account1).paused()).to.eq(true);
+            await stakedNFT.connect(account1).enableTransfer();
+            expect(await stakedNFT.connect(account1).transferrable()).to.eq(true);
+
+            await stakedNFT.connect(account1).disableTransfer();
+            expect(await stakedNFT.connect(account1).transferrable()).to.eq(false);
         });
-
-    });
-
-    describe("Unpause", async() => {
-
-        it("User without pauser role cannot unpause", async() => {
-            await expect(stakedNFT.connect(account1).unpause()).to.be.revertedWith("StakedERC721.onlyPauser: permission denied");
-        });
-
-        it("Cannot be unpaused when it's already unpaused", async() => {
-            const pauserRole = await stakedNFT.PAUSER_ROLE();
-            await stakedNFT.grantRole(pauserRole, account1.address);  
-            await stakedNFT.connect(account1).unpause();
-            await expect(stakedNFT.connect(account1).unpause()).to.be.revertedWith("Pausable: not paused");      
-        });
-
-        it("User with pauser role can successfully unpause", async() => {
-            const pauserRole = await stakedNFT.PAUSER_ROLE();
-            await stakedNFT.grantRole(pauserRole, account1.address);
-
-            await stakedNFT.connect(account1).unpause();
-            expect(await stakedNFT.connect(account1).paused()).to.eq(false);
-        });
-
     });
 
     describe("SafeMint", async() => {

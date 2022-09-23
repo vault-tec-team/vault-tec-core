@@ -141,7 +141,7 @@ describe("ERC721Staking", function () {
         it("StakedNFT should fail when transfer", async() => {
             await originalNFT.connect(account1).approve(erc721Staking.address, STAKE_TOKEN_ID);
             await erc721Staking.connect(account1).stake(STAKE_TOKEN_ID, 0);
-            await expect(stakedNFT.connect(account1).transferFrom(account1.address, account2.address, STAKE_TOKEN_ID)).to.be.revertedWith("Pausable: paused");
+            await expect(stakedNFT.connect(account1).transferFrom(account1.address, account2.address, STAKE_TOKEN_ID)).to.be.revertedWith("StakedERC721._transfer: not transferrable");
         });
     });
 
