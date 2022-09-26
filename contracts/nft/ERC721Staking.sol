@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
-
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
@@ -10,7 +7,6 @@ import "./interfaces/IStakedERC721.sol";
 import "./ERC721Saver.sol";
 
 contract ERC721Staking is ReentrancyGuard, ERC721Saver {
-    using SafeERC20 for IERC20;
     using Math for uint256;
 
     IERC721 public immutable nft;
@@ -18,6 +14,9 @@ contract ERC721Staking is ReentrancyGuard, ERC721Saver {
 
     uint256 public immutable maxLockDuration;
     uint256 public constant MIN_LOCK_DURATION = 10 minutes;
+
+    event NFTStaked(address indexed staker, uint256 tokenId, uint256 duration);
+    event NFTUnstaked(address indexed unstaker, uint256 tokenId);
 
     // Constructor function to set the rewards token and the NFT collection addresses
     constructor(
@@ -40,6 +39,10 @@ contract ERC721Staking is ReentrancyGuard, ERC721Saver {
             "ERC721Staking.stake: You don't own this token!"
         );
 
+        require(
+            block.timestamp + _duration <= type(uint64).max,
+            "ERC721Staking.stake: duration too long"
+        );
         // Don't allow locking > maxLockDuration
         uint256 duration = _duration.min(maxLockDuration);
         // Enforce min lockup duration to prevent flash loan or MEV transaction ordering
@@ -57,6 +60,8 @@ contract ERC721Staking is ReentrancyGuard, ERC721Saver {
                 end: uint64(block.timestamp) + uint64(duration)
             })
         );
+
+        emit NFTStaked(msg.sender, _tokenId, _duration);
     }
     
     function unstake(uint256 _tokenId) external nonReentrant {
@@ -66,5 +71,7 @@ contract ERC721Staking is ReentrancyGuard, ERC721Saver {
         );
         nft.transferFrom(address(this), msg.sender, _tokenId);
         stakedNFT.burn(_tokenId);
+
+        emit NFTUnstaked(msg.sender, _tokenId);
     }
 }

@@ -4,7 +4,6 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "./interfaces/IStakedERC721.sol";
 
 contract StakedERC721 is IStakedERC721, ERC721Enumerable, AccessControlEnumerable {
@@ -14,6 +13,8 @@ contract StakedERC721 is IStakedERC721, ERC721Enumerable, AccessControlEnumerabl
     mapping(uint256 => StakedInfo) private _stakedInfos;
 
     bool private _transferrable;
+
+    event TransferrableUpdated(address updatedBy, bool transferrable);
 
     constructor(string memory name, string memory symbol) 
         ERC721(
@@ -43,10 +44,12 @@ contract StakedERC721 is IStakedERC721, ERC721Enumerable, AccessControlEnumerabl
 
     function disableTransfer() external override onlyAdmin() {
         _transferrable = false;
+        emit TransferrableUpdated(msg.sender, false);
     }
 
     function enableTransfer() external override onlyAdmin() {
        _transferrable = true;
+       emit TransferrableUpdated(msg.sender, true);
     }
 
     function transferrable() public view virtual returns (bool) {
@@ -101,6 +104,6 @@ contract StakedERC721 is IStakedERC721, ERC721Enumerable, AccessControlEnumerabl
         override(ERC721Enumerable, AccessControlEnumerable, IERC165)
         returns (bool)
     {
-        return super.supportsInterface(interfaceId);
+        return (interfaceId == type(IStakedERC721).interfaceId || super.supportsInterface(interfaceId));
     }
 }
