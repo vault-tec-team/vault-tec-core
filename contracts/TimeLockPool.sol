@@ -13,9 +13,9 @@ contract TimeLockPool is BasePool, ITimeLockPool {
     using SafeERC20 for IERC20;
 
     uint256 public immutable maxBonus;
+    uint256 public immutable minLockDuration;
     uint256 public immutable maxLockDuration;
-    uint256 public constant MIN_LOCK_DURATION = 10 minutes;
-    uint256 public constant MAX_LOCK_DURATION = 36500 days;
+    uint256 public constant MIN_LOCK_DURATION_FOR_SAFETY = 10 minutes;
     
     mapping(address => Deposit[]) public depositsOf;
 
@@ -33,11 +33,19 @@ contract TimeLockPool is BasePool, ITimeLockPool {
         uint256 _escrowPortion,
         uint256 _escrowDuration,
         uint256 _maxBonus,
+        uint256 _minLockDuration,
         uint256 _maxLockDuration
     ) BasePool(_name, _symbol, _depositToken, _rewardToken, _escrowPool, _escrowPortion, _escrowDuration) {
-        require(_maxLockDuration <= MAX_LOCK_DURATION, "TimeLockPool.constructor: max lock duration must be less than or equal to maximum lock duration");
-        require(_maxLockDuration >= MIN_LOCK_DURATION, "TimeLockPool.constructor: max lock duration must be greater or equal to mininmum lock duration");
+        require(
+            _minLockDuration >= MIN_LOCK_DURATION_FOR_SAFETY, 
+            "TimeLockPool.constructor: min lock duration must be greater or equal to mininmum lock duration for safety"
+        );
+        require(
+            _maxLockDuration >= _minLockDuration, 
+            "TimeLockPool.constructor: max lock duration must be greater or equal to mininmum lock duration"
+        );
         maxBonus = _maxBonus;
+        minLockDuration = _minLockDuration;
         maxLockDuration = _maxLockDuration;
     }
 
@@ -50,7 +58,7 @@ contract TimeLockPool is BasePool, ITimeLockPool {
         // Don't allow locking > maxLockDuration
         uint256 duration = _duration.min(maxLockDuration);
         // Enforce min lockup duration to prevent flash loan or MEV transaction ordering
-        duration = duration.max(MIN_LOCK_DURATION);
+        duration = duration.max(minLockDuration);
 
         depositToken.safeTransferFrom(_msgSender(), address(this), _amount);
 

@@ -13,8 +13,9 @@ contract TimeLockNonTransferablePool is TimeLockPool {
         uint256 _escrowPortion,
         uint256 _escrowDuration,
         uint256 _maxBonus,
+        uint256 _minLockDuration,
         uint256 _maxLockDuration
-    ) TimeLockPool(_name, _symbol, _depositToken, _rewardToken, _escrowPool, _escrowPortion, _escrowDuration, _maxBonus, _maxLockDuration) {
+    ) TimeLockPool(_name, _symbol, _depositToken, _rewardToken, _escrowPool, _escrowPortion, _escrowDuration, _maxBonus, _minLockDuration, _maxLockDuration) {
 
     }
 

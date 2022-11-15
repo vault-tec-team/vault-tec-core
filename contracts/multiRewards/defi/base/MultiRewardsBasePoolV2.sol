@@ -7,13 +7,13 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-import "../interfaces/IMultiRewardsBasePool.sol";
-import "../interfaces/ITimeLockPool.sol";
+import "contracts/multiRewards/interfaces/IMultiRewardsBasePool.sol";
+import "contracts/interfaces/ITimeLockPool.sol";
 
-import "./AbstractMultiRewards.sol";
-import "./TokenSaver.sol";
+import "contracts/multiRewards/base/AbstractMultiRewards.sol";
+import "contracts/base/TokenSaver.sol";
 
-abstract contract MultiRewardsBasePool is ERC20Votes, AbstractMultiRewards, IMultiRewardsBasePool, TokenSaver, ReentrancyGuard {
+abstract contract MultiRewardsBasePoolV2 is ERC20Votes, AbstractMultiRewards, IMultiRewardsBasePool, TokenSaver, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeCast for uint256;
     using SafeCast for int256;
@@ -29,6 +29,9 @@ abstract contract MultiRewardsBasePool is ERC20Votes, AbstractMultiRewards, IMul
     mapping(address => uint256) public escrowDurations; // escrow duration in seconds
 
     event RewardsClaimed(address indexed _reward, address indexed _from, address indexed _receiver, uint256 _escrowedAmount, uint256 _nonEscrowedAmount);
+    event EscrowPoolUpdated(address indexed _reward, address _escrowPool);
+    event EscrowPortionUpdated(address indexed _reward, uint256 _portion);
+    event EscrowDurationUpdated(address indexed _reward, uint256 _duration);
 
     constructor(
         string memory _name,
@@ -39,21 +42,21 @@ abstract contract MultiRewardsBasePool is ERC20Votes, AbstractMultiRewards, IMul
         uint256[] memory _escrowPortions,
         uint256[] memory _escrowDurations
     ) ERC20Permit(_name) ERC20(_name, _symbol) AbstractMultiRewards(balanceOf, totalSupply) {
-        require(_depositToken != address(0), "MultiRewardsBasePool.constructor: Deposit token must be set");
-        require(_rewardTokens.length == _escrowPools.length, "MultiRewardsBasePool.constructor: reward tokens and escrow pools length mismatch");
-        require(_rewardTokens.length == _escrowPortions.length, "MultiRewardsBasePool.constructor: reward tokens and escrow portions length mismatch");
-        require(_rewardTokens.length == _escrowDurations.length, "MultiRewardsBasePool.constructor: reward tokens and escrow durations length mismatch");
+        require(_depositToken != address(0), "MultiRewardsBasePoolV2.constructor: Deposit token must be set");
+        require(_rewardTokens.length == _escrowPools.length, "MultiRewardsBasePoolV2.constructor: reward tokens and escrow pools length mismatch");
+        require(_rewardTokens.length == _escrowPortions.length, "MultiRewardsBasePoolV2.constructor: reward tokens and escrow portions length mismatch");
+        require(_rewardTokens.length == _escrowDurations.length, "MultiRewardsBasePoolV2.constructor: reward tokens and escrow durations length mismatch");
 
         depositToken = IERC20(_depositToken);
 
         for (uint i=0; i<_rewardTokens.length; i++) {
             address rewardToken = _rewardTokens[i];
-            require(rewardToken != address(0), "MultiRewardsBasePool.constructor: reward token cannot be zero address");
+            require(rewardToken != address(0), "MultiRewardsBasePoolV2.constructor: reward token cannot be zero address");
 
             address escrowPool = _escrowPools[i];
 
             uint256 escrowPortion = _escrowPortions[i];
-            require(escrowPortion <= 1e18, "MultiRewardsBasePool.constructor: Cannot escrow more than 100%");
+            require(escrowPortion <= 1e18, "MultiRewardsBasePoolV2.constructor: Cannot escrow more than 100%");
 
             uint256 escrowDuration = _escrowDurations[i];
 
@@ -76,7 +79,7 @@ abstract contract MultiRewardsBasePool is ERC20Votes, AbstractMultiRewards, IMul
 
     /// @dev A modifier which checks that the caller has the admin role.
     modifier onlyAdmin() {
-        require(hasRole(ADMIN_ROLE, msg.sender), "MultiRewardsBasePool: only admin");
+        require(hasRole(ADMIN_ROLE, msg.sender), "MultiRewardsBasePoolV2: only admin");
         _;
     }
 
@@ -113,11 +116,9 @@ abstract contract MultiRewardsBasePool is ERC20Votes, AbstractMultiRewards, IMul
         address _reward, 
         address _escrowPool, 
         uint256 _escrowPortion, 
-        uint256 _escrowDuration) 
-        external onlyAdmin 
-    {
-        require(_reward != address(0), "MultiRewardsBasePool.addRewardToken: reward token cannot be zero address");
-        require(_escrowPortion <= 1e18, "MultiRewardsBasePool.addRewardToken: Cannot escrow more than 100%");
+        uint256 _escrowDuration) external onlyAdmin {
+        require(_reward != address(0), "MultiRewardsBasePoolV2.addRewardToken: reward token cannot be zero address");
+        require(_escrowPortion <= 1e18, "MultiRewardsBasePoolV2.addRewardToken: Cannot escrow more than 100%");
 
         if (!rewardTokensList[_reward]) {
             rewardTokensList[_reward] = true;
@@ -133,9 +134,9 @@ abstract contract MultiRewardsBasePool is ERC20Votes, AbstractMultiRewards, IMul
     }
 
     function updateRewardToken(address _reward, address _escrowPool, uint256 _escrowPortion, uint256 _escrowDuration) external onlyAdmin {
-        require(rewardTokensList[_reward], "MultiRewardsBasePool.updateRewardToken: reward token not in the list");
-        require(_reward != address(0), "MultiRewardsBasePool.updateRewardToken: reward token cannot be zero address");
-        require(_escrowPortion <= 1e18, "MultiRewardsBasePool.updateRewardToken: Cannot escrow more than 100%");
+        require(rewardTokensList[_reward], "MultiRewardsBasePoolV2.updateRewardToken: reward token not in the list");
+        require(_reward != address(0), "MultiRewardsBasePoolV2.updateRewardToken: reward token cannot be zero address");
+        require(_escrowPortion <= 1e18, "MultiRewardsBasePoolV2.updateRewardToken: Cannot escrow more than 100%");
 
         
         if (escrowPools[_reward] != _escrowPool && _escrowPool != address(0)) {
@@ -174,5 +175,39 @@ abstract contract MultiRewardsBasePool is ERC20Votes, AbstractMultiRewards, IMul
             address reward = rewardTokens[i];
             claimRewards(reward, _receiver);
         }
+    }
+
+    function updateEscrowPool(address _targetRewardToken, address _newEscrowPool) external onlyAdmin {
+        require(_newEscrowPool != address(0), "MultiRewardsBasePoolV2.updateEscrowPool: escrowPool must be set");
+        require(rewardTokensList[_targetRewardToken], "MultiRewardsBasePoolV2.updateEscrowPool: reward token not in the list");
+
+        address oldEscrowPool = escrowPools[_targetRewardToken];
+
+        escrowPools[_targetRewardToken] = _newEscrowPool;
+        if(_targetRewardToken != address(0) && _newEscrowPool != address(0)) {
+            IERC20(_targetRewardToken).safeApprove(oldEscrowPool, 0);
+            IERC20(_targetRewardToken).safeApprove(_newEscrowPool, type(uint256).max);
+        }
+
+        emit EscrowPoolUpdated(_targetRewardToken, _newEscrowPool);
+    }
+
+    function updateEscrowPortions(address _targetRewardToken, uint256 _newEscrowPortion) external onlyAdmin {
+        // how much is escrowed 1e18 == 100%
+        require(rewardTokensList[_targetRewardToken], "MultiRewardsBasePoolV2.updateEscrowPortions: reward token not in the list");
+        require(_newEscrowPortion <= 1e18, "MultiRewardsBasePoolV2.updateEscrowPortions: cannot escrow more than 100%");
+
+        escrowPortions[_targetRewardToken] = _newEscrowPortion;
+
+        emit EscrowPortionUpdated(_targetRewardToken, _newEscrowPortion);
+    }
+
+    function updateEscrowDuration(address _targetRewardToken, uint256 _newDuration) external onlyAdmin {
+        // escrow duration in seconds
+        require(rewardTokensList[_targetRewardToken], "MultiRewardsBasePoolV2.updateEscrowDuration: reward token not in the list");
+
+        escrowDurations[_targetRewardToken] = _newDuration;
+
+        emit EscrowDurationUpdated(_targetRewardToken, _newDuration);
     }
 }

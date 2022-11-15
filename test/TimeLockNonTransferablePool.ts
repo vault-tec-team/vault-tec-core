@@ -8,9 +8,11 @@ import { TestERC20 } from "../typechain";
 import { TimeLockNonTransferablePool } from "../typechain/TimeLockNonTransferablePool";
 import TimeTraveler from "../utils/TimeTraveler";
 
+const MIN_ESCROW_DURATION = 60 * 10;
 const ESCROW_DURATION = 60 * 60 * 24 * 365;
 const ESCROW_PORTION = parseEther("0.77");
 const MAX_BONUS = parseEther("1");
+const MIN_LOCK_DURATION = 60 * 10;
 const MAX_LOCK_DURATION = 60 * 60 * 24 * 365;
 const INITIAL_MINT = parseEther("1000000");
 const DEPOSIT_AMOUNT = parseEther("1000");
@@ -60,6 +62,7 @@ describe("TimeLockNonTransferablePool", function () {
             0,
             0,
             0,
+            MIN_ESCROW_DURATION,
             ESCROW_DURATION
         );
 
@@ -72,6 +75,7 @@ describe("TimeLockNonTransferablePool", function () {
             ESCROW_PORTION,
             ESCROW_DURATION,
             MAX_BONUS,
+            MIN_LOCK_DURATION,
             MAX_LOCK_DURATION
         );
 

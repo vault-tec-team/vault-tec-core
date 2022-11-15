@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
-import "../base/MultiRewardsBasePool.sol";
+import "contracts/multiRewards/gamefi/base/MultiRewardsBasePoolV3.sol";
 
-contract TestMultiRewardsBasePool is MultiRewardsBasePool {
+contract TestMultiRewardsBasePoolV3 is MultiRewardsBasePoolV3 {
 
     constructor(
         string memory _name,
@@ -13,7 +13,7 @@ contract TestMultiRewardsBasePool is MultiRewardsBasePool {
         address[] memory _escrowPools,
         uint256[] memory _escrowPortions,
         uint256[] memory _escrowDurations
-    ) MultiRewardsBasePool(_name, _symbol, _depositToken, _rewardTokens, _escrowPools, _escrowPortions, _escrowDurations) {
+    ) MultiRewardsBasePoolV3(_name, _symbol, _depositToken, _rewardTokens, _escrowPools, _escrowPortions, _escrowDurations) {
         // silence
     }
     function mint(address _receiver, uint256 _amount) external {

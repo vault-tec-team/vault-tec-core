@@ -20,7 +20,7 @@ Rewards are subject to a lock duration as specified by each project. And the amo
 * Quantstamps: https://certificate.quantstamp.com/full/vault-inc
 * Certik: https://gateway.pinata.cloud/ipfs/QmZLyPfGXNk4nsBKuSYeMndisV6mm3L91bX8TngLQzttGz
 
-## V2
+## V1 - MultiRewards
 Updates
 * Add multi-rewards support for time lock pools.
 * Different rewards will be distributed using different MultiRewardsLiquidityMiningManager and parameters can be set separately.
@@ -37,3 +37,33 @@ Vault.Inc adds support for ERC721 staking.
 * User can stake their NFT and choose for a certain lockup. And will be issued a stakedNFT (as a certificate) with the same token id and with locking information on it.
 * User can only unstake their NFT after the lockup duration. The stakedNFT will be burned and the original NFT will be returned to user's wallet.
 * The stakedNFT will be non-transferrable by default. Admin user with PAUSER_ROLE can turn on the trasfer ability in the future if needed.
+
+## V2 - For DeFi
+Updates
+* Add distributor incentive and platform fee
+* Add minimum lock duration to constructor for flexibility
+* Add functions to update escrow related params
+* Add kickout mechanism
+* Add batch deposit and migration related deposit functions
+
+**For projects:**
+* Project team can decide the distributor incentive and platform fee.
+* Project team can update the escrow related params.
+
+**For users:**
+* User can kickout other's expired deposits when after their locked period.
+* User can relock their own expired deposits back to vault with new duration.
+
+## V3 - For GameFi
+Updates
+* Add badge boosting and delegation system
+* Add blacklist and ineligible list
+
+**For projects:**
+* Project team can add badge and boosted number for each id.
+* Project team can add address to blacklist and ineligible list.
+
+**For users:**
+* User can earn extra boosting based on the badge and id they own at the time of deposit.
+* User won't be able to earn extra boosting by badge when in ineligible list.
+* User won't be allocated with any rewards when in blacklist. User can still deposit or withdraw when in blacklist.

@@ -17,6 +17,7 @@ import TimeTraveler from "../utils/TimeTraveler";
 const TOKEN_NAME = "Staked Token";
 const TOKEN_SYMBOL = "STKN";
 const ESCROW_PORTION = parseEther("0.6");
+const MIN_ESCROW_DURATION = 60 * 10;
 const ESCROW_DURATION = 60 * 60 * 24 * 365; // 1 year
 
 const INITIAL_MINT = parseEther("1000000000");
@@ -70,6 +71,7 @@ describe("BasePool", function () {
             0,
             0,
             0,
+            MIN_ESCROW_DURATION,
             ESCROW_DURATION
         );
 

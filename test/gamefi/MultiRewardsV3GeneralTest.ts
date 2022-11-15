@@ -3,11 +3,16 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import hre from "hardhat";
-import { MultiRewardsLiquidityMiningManager, MultiRewardsLiquidityMiningManager__factory, TestERC20__factory, MultiRewardsTimeLockNonTransferablePool__factory, TimeLockNonTransferablePool__factory } from "../typechain";
-import { TestERC20 } from "../typechain";
-import { MultiRewardsTimeLockNonTransferablePool } from "../typechain/MultiRewardsTimeLockNonTransferablePool";
-import { TimeLockNonTransferablePool } from "../typechain/TimeLockNonTransferablePool";
-import TimeTraveler from "../utils/TimeTraveler";
+import { 
+    MultiRewardsLiquidityMiningManagerV3,
+    MultiRewardsLiquidityMiningManagerV3__factory, 
+    TestERC20,
+    TestERC20__factory, 
+    MultiRewardsTimeLockNonTransferablePoolV3,
+    MultiRewardsTimeLockNonTransferablePoolV3__factory, 
+    TimeLockNonTransferablePool,
+    TimeLockNonTransferablePool__factory } from "../../typechain";
+import TimeTraveler from "../../utils/TimeTraveler";
 
 const POOL_COUNT = 2;
 const ESCROW_DURATION_1 = 60 * 10;
@@ -25,10 +30,14 @@ const WEIGHT_1 = parseEther("4");
 const REWARDS_PER_SECOND_1 = parseEther("1");
 const REWARDS_PER_SECOND_2 = parseEther("5");
 
+const DISTRIBUTOR_INCENTIVE = 100; //1%
+const PLATFORM_FEE = 500; //5%
+
 describe("MultiRewards", function () {
 
     let deployer: SignerWithAddress;
     let rewardSource: SignerWithAddress;
+    let treasury: SignerWithAddress;
     let account1: SignerWithAddress;
     let account2: SignerWithAddress;
     let account3: SignerWithAddress;
@@ -39,12 +48,12 @@ describe("MultiRewards", function () {
     let rewardToken1: TestERC20;
     let rewardToken2: TestERC20;
 
-    const pools: MultiRewardsTimeLockNonTransferablePool[] = [];
+    const pools: MultiRewardsTimeLockNonTransferablePoolV3[] = [];
     let escrowPool1: TimeLockNonTransferablePool;
     let escrowPool2: TimeLockNonTransferablePool;
 
-    let liquidityMiningManager1: MultiRewardsLiquidityMiningManager;
-    let liquidityMiningManager2: MultiRewardsLiquidityMiningManager;
+    let liquidityMiningManager1: MultiRewardsLiquidityMiningManagerV3;
+    let liquidityMiningManager2: MultiRewardsLiquidityMiningManagerV3;
 
     let timeTraveler = new TimeTraveler(hre.network.provider);
 
@@ -52,6 +61,7 @@ describe("MultiRewards", function () {
         [
             deployer,
             rewardSource,
+            treasury,
             account1,
             account2,
             account3,
@@ -76,6 +86,7 @@ describe("MultiRewards", function () {
             0,
             0,
             0,
+            600,
             ESCROW_DURATION_2
         );
 
@@ -88,11 +99,12 @@ describe("MultiRewards", function () {
             0,
             0,
             0,
+            600,
             ESCROW_DURATION_2
         );
 
-        liquidityMiningManager1 = await (new MultiRewardsLiquidityMiningManager__factory(deployer)).deploy(rewardToken1.address, rewardSource.address);
-        liquidityMiningManager2 = await (new MultiRewardsLiquidityMiningManager__factory(deployer)).deploy(rewardToken2.address, rewardSource.address);
+        liquidityMiningManager1 = await (new MultiRewardsLiquidityMiningManagerV3__factory(deployer)).deploy(rewardToken1.address, rewardSource.address, DISTRIBUTOR_INCENTIVE, PLATFORM_FEE, treasury.address);
+        liquidityMiningManager2 = await (new MultiRewardsLiquidityMiningManagerV3__factory(deployer)).deploy(rewardToken2.address, rewardSource.address, DISTRIBUTOR_INCENTIVE, PLATFORM_FEE, treasury.address);
 
         // setup rewardSource
         await rewardToken1.mint(rewardSource.address, INITIAL_REWARD_MINT);
@@ -103,7 +115,7 @@ describe("MultiRewards", function () {
         await depositToken.mint(account1.address, INITIAL_MINT);
         await depositToken.mint(account2.address, INITIAL_MINT);
 
-        const poolFactory = new MultiRewardsTimeLockNonTransferablePool__factory(deployer);
+        const poolFactory = new MultiRewardsTimeLockNonTransferablePoolV3__factory(deployer);
 
         for(let i = 0; i < POOL_COUNT; i ++) {
             pools.push(
@@ -116,6 +128,7 @@ describe("MultiRewards", function () {
                     [ESCROW_PORTION_1, ESCROW_PORTION_2],
                     [ESCROW_DURATION_1, ESCROW_DURATION_2],
                     0,
+                    600,
                     ESCROW_DURATION_2
                 )
             );

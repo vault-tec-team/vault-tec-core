@@ -9,9 +9,12 @@ import { TimeLockNonTransferablePool } from "../typechain/TimeLockNonTransferabl
 import TimeTraveler from "../utils/TimeTraveler";
 
 const POOL_COUNT = 4;
+const MIN_ESCROW_DURATION = 60 * 10;
 const ESCROW_DURATION = 60 * 60 * 24 * 365;
 const ESCROW_PORTION = parseEther("0.6");
 const INITIAL_REWARD_MINT = parseEther("1000000");
+const MIN_LOCK_DURATION = 60 * 10;
+const MAX_LOCK_DURATION = 60 * 60 * 24 * 365;
 
 describe("LiquidityMiningManager", function () {
 
@@ -58,6 +61,7 @@ describe("LiquidityMiningManager", function () {
             0,
             0,
             0,
+            MIN_ESCROW_DURATION,
             ESCROW_DURATION
         );
 
@@ -79,7 +83,8 @@ describe("LiquidityMiningManager", function () {
                     ESCROW_PORTION,
                     ESCROW_DURATION,
                     0,
-                    ESCROW_DURATION
+                    MIN_LOCK_DURATION,
+                    MAX_LOCK_DURATION
                 )
             );         
         }

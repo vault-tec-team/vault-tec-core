@@ -9,9 +9,11 @@ import { TestERC20 } from "../typechain";
 import { TimeLockPool } from "../typechain/TimeLockPool";
 import TimeTraveler from "../utils/TimeTraveler";
 
+const MIN_ESCROW_DURATION = 60 * 10;
 const ESCROW_DURATION = 60 * 60 * 24 * 365;
 const ESCROW_PORTION = parseEther("0.77");
 const MAX_BONUS = parseEther("1");
+const MIN_LOCK_DURATION = 60 * 10;
 const MAX_LOCK_DURATION = 60 * 60 * 24 * 365;
 const INITIAL_MINT = parseEther("1000000");
 
@@ -60,6 +62,7 @@ describe("TimeLockPool", function () {
             0,
             0,
             0,
+            MIN_ESCROW_DURATION,
             ESCROW_DURATION
         );
 
@@ -72,6 +75,7 @@ describe("TimeLockPool", function () {
             ESCROW_PORTION,
             ESCROW_DURATION,
             MAX_BONUS,
+            MIN_LOCK_DURATION,
             MAX_LOCK_DURATION
         );
 
@@ -98,10 +102,10 @@ describe("TimeLockPool", function () {
 
         it("Depositing with no lock should lock it for 10 minutes to prevent flashloans", async() => {
             await timeLockPool.deposit(DEPOSIT_AMOUNT, 0, account3.address);
-            const MIN_LOCK_DURATION = await timeLockPool.MIN_LOCK_DURATION();
+            const minLockDuration = await timeLockPool.minLockDuration();
             const deposit = await timeLockPool.depositsOf(account3.address, 0);
             const duration = await deposit.end.sub(deposit.start);
-            expect(duration).to.eq(MIN_LOCK_DURATION);
+            expect(duration).to.eq(minLockDuration);
         });
 
         it("Deposit with no lock", async() => {
@@ -114,13 +118,13 @@ describe("TimeLockPool", function () {
             const blockTimestamp = (await hre.ethers.provider.getBlock("latest")).timestamp;
             const totalDeposit = await timeLockPool.getTotalDeposit(account3.address);
             const timeLockPoolBalance = await timeLockPool.balanceOf(account3.address)
-            const MIN_LOCK_DURATION = await timeLockPool.MIN_LOCK_DURATION();
+            const minLockDuration = await timeLockPool.minLockDuration();
 
-            const multiplier = await timeLockPool.getMultiplier(MIN_LOCK_DURATION);
+            const multiplier = await timeLockPool.getMultiplier(minLockDuration);
 
             expect(deposit.amount).to.eq(DEPOSIT_AMOUNT);
             expect(deposit.start).to.eq(blockTimestamp);
-            expect(deposit.end).to.eq(BigNumber.from(blockTimestamp).add(MIN_LOCK_DURATION));
+            expect(deposit.end).to.eq(BigNumber.from(blockTimestamp).add(minLockDuration));
             expect(depositCount).to.eq(1);
             expect(totalDeposit).to.eq(DEPOSIT_AMOUNT);
             expect(timeLockPoolBalance).to.eq(DEPOSIT_AMOUNT.mul(multiplier).div(constants.WeiPerEther));
