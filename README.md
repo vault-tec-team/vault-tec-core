@@ -39,6 +39,13 @@ Vault.Inc adds support for ERC721 staking.
 * The stakedNFT will be non-transferrable by default. Admin user with PAUSER_ROLE can turn on the trasfer ability in the future if needed.
 
 ## V2 - For DeFi
+```
+    ├── ...
+    └── contracts
+        └── multiRewards
+            └── defi
+```
+
 Updates
 * Add distributor incentive and platform fee
 * Add minimum lock duration to constructor for flexibility
@@ -55,6 +62,13 @@ Updates
 * User can relock their own expired deposits back to vault with new duration.
 
 ## V3 - For GameFi
+```
+    ├── ...
+    └── contracts
+        └── multiRewards
+            └──gamefi
+```
+
 Updates
 * Add badge boosting and delegation system
 * Add blacklist and ineligible list
