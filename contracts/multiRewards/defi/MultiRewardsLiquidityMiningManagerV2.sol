@@ -15,12 +15,12 @@ contract MultiRewardsLiquidityMiningManagerV2 is TokenSaver {
 
     uint256 public MAX_POOL_COUNT = 10;
 
-    IERC20 immutable public reward;
-    address immutable public rewardSource;
+    IERC20 public immutable reward;
+    address public immutable rewardSource;
     uint256 public rewardPerSecond; //total reward amount per second
     uint256 public lastDistribution; //when rewards were last pushed
     uint256 public totalWeight;
-    
+
     uint256 public distributorIncentive; //incentive to distributor
     uint256 public platformFee; //possible fee to build treasury
     uint256 public constant FEE_DENOMINATOR = 10000;
@@ -34,18 +34,24 @@ contract MultiRewardsLiquidityMiningManagerV2 is TokenSaver {
         uint256 weight;
     }
 
-    modifier onlyGov {
+    modifier onlyGov() {
         require(hasRole(GOV_ROLE, _msgSender()), "MultiRewardsLiquidityMiningManagerV2.onlyGov: permission denied");
         _;
     }
 
-    modifier onlyRewardDistributor {
-        require(hasRole(REWARD_DISTRIBUTOR_ROLE, _msgSender()), "MultiRewardsLiquidityMiningManagerV2.onlyRewardDistributor: permission denied");
+    modifier onlyRewardDistributor() {
+        require(
+            hasRole(REWARD_DISTRIBUTOR_ROLE, _msgSender()),
+            "MultiRewardsLiquidityMiningManagerV2.onlyRewardDistributor: permission denied"
+        );
         _;
     }
 
-    modifier onlyFeeManager {
-        require(hasRole(FEE_MANAGER_ROLE, _msgSender()), "MultiRewardsLiquidityMiningManagerV2.onlyFeeManager: permission denied");
+    modifier onlyFeeManager() {
+        require(
+            hasRole(FEE_MANAGER_ROLE, _msgSender()),
+            "MultiRewardsLiquidityMiningManagerV2.onlyFeeManager: permission denied"
+        );
         _;
     }
 
@@ -64,18 +70,25 @@ contract MultiRewardsLiquidityMiningManagerV2 is TokenSaver {
     event PlatformFeeIssued(address indexed _to, uint256 _platformFeeAmount);
 
     constructor(
-        address _reward, 
-        address _rewardSource, 
-        uint256 _distributorIncentive, 
-        uint256 _platformFee, 
+        address _reward,
+        address _rewardSource,
+        uint256 _distributorIncentive,
+        uint256 _platformFee,
         address _treasury
     ) {
         require(_reward != address(0), "MultiRewardsLiquidityMiningManagerV2.constructor: reward token must be set");
-        require(_rewardSource != address(0), "MultiRewardsLiquidityMiningManagerV2.constructor: rewardSource must be set");
-        require(_distributorIncentive <= FEE_DENOMINATOR, 
-            "MultiRewardsLiquidityMiningManagerV2.constructor: distributorIncentive cannot be greater than 100%");
-        require(_platformFee <= FEE_DENOMINATOR, 
-            "MultiRewardsLiquidityMiningManagerV2.constructor: platformFee cannot be greater than 100%");
+        require(
+            _rewardSource != address(0),
+            "MultiRewardsLiquidityMiningManagerV2.constructor: rewardSource must be set"
+        );
+        require(
+            _distributorIncentive <= FEE_DENOMINATOR,
+            "MultiRewardsLiquidityMiningManagerV2.constructor: distributorIncentive cannot be greater than 100%"
+        );
+        require(
+            _platformFee <= FEE_DENOMINATOR,
+            "MultiRewardsLiquidityMiningManagerV2.constructor: platformFee cannot be greater than 100%"
+        );
         if (_platformFee > 0) {
             require(_treasury != address(0), "MultiRewardsLiquidityMiningManagerV2.constructor: treasury must be set");
         }
@@ -94,13 +107,21 @@ contract MultiRewardsLiquidityMiningManagerV2 is TokenSaver {
     }
 
     function setFees(uint256 _distributorIncentive, uint256 _platformFee) external onlyFeeManager {
-        require(_distributorIncentive <= FEE_DENOMINATOR, 
-            "MultiRewardsLiquidityMiningManagerV2.setFees: distributorIncentive cannot be greater than 100%");
-        require(_platformFee <= FEE_DENOMINATOR, 
-            "MultiRewardsLiquidityMiningManagerV2.setFees: platformFee cannot be greater than 100%");
+        require(
+            _distributorIncentive <= FEE_DENOMINATOR,
+            "MultiRewardsLiquidityMiningManagerV2.setFees: distributorIncentive cannot be greater than 100%"
+        );
+        require(
+            _platformFee <= FEE_DENOMINATOR,
+            "MultiRewardsLiquidityMiningManagerV2.setFees: platformFee cannot be greater than 100%"
+        );
         distributorIncentive = _distributorIncentive;
+        if (_platformFee > 0) {
+            require(treasury != address(0), "MultiRewardsLiquidityMiningManagerV2.setFees: treasury must be set");
+        }
+
         platformFee = _platformFee;
-        
+
         emit DistributorIncentiveSet(_distributorIncentive);
         emit PlatformFeeSet(_platformFee);
     }
@@ -115,14 +136,14 @@ contract MultiRewardsLiquidityMiningManagerV2 is TokenSaver {
         distributeRewards();
         require(_poolContract != address(0), "MultiRewardsLiquidityMiningManagerV2.addPool: pool contract must be set");
         require(!poolAdded[_poolContract], "MultiRewardsLiquidityMiningManagerV2.addPool: Pool already added");
-        require(pools.length < MAX_POOL_COUNT, "MultiRewardsLiquidityMiningManagerV2.addPool: Max amount of pools reached");
+        require(
+            pools.length < MAX_POOL_COUNT,
+            "MultiRewardsLiquidityMiningManagerV2.addPool: Max amount of pools reached"
+        );
         // add pool
-        pools.push(Pool({
-            poolContract: IMultiRewardsBasePool(_poolContract),
-            weight: _weight
-        }));
+        pools.push(Pool({ poolContract: IMultiRewardsBasePool(_poolContract), weight: _weight }));
         poolAdded[_poolContract] = true;
-        
+
         // increase totalWeight
         totalWeight += _weight;
 
@@ -139,7 +160,7 @@ contract MultiRewardsLiquidityMiningManagerV2 is TokenSaver {
 
         // decrease totalWeight
         totalWeight -= pools[_poolId].weight;
-        
+
         // remove pool
         pools[_poolId] = pools[pools.length - 1];
         pools.pop();
@@ -186,16 +207,22 @@ contract MultiRewardsLiquidityMiningManagerV2 is TokenSaver {
             return;
         }
 
-        uint256 platformFeeAmount = totalRewardAmount * platformFee / FEE_DENOMINATOR;
-        uint256 distributorIncentiveAmount = totalRewardAmount * distributorIncentive / FEE_DENOMINATOR;
+        uint256 platformFeeAmount = (totalRewardAmount * platformFee) / FEE_DENOMINATOR;
+        uint256 distributorIncentiveAmount = (totalRewardAmount * distributorIncentive) / FEE_DENOMINATOR;
 
-        reward.safeTransferFrom(rewardSource, address(this), totalRewardAmount + platformFeeAmount + distributorIncentiveAmount);
+        reward.safeTransferFrom(
+            rewardSource,
+            address(this),
+            totalRewardAmount + platformFeeAmount + distributorIncentiveAmount
+        );
 
-        for (uint256 i = 0; i < pools.length; i ++) {
+        for (uint256 i = 0; i < pools.length; i++) {
             Pool memory pool = pools[i];
-            uint256 poolRewardAmount = totalRewardAmount * pool.weight / totalWeight;
+            uint256 poolRewardAmount = (totalRewardAmount * pool.weight) / totalWeight;
             // Ignore tx failing to prevent a single pool from halting reward distribution
-            address(pool.poolContract).call(abi.encodeWithSelector(pool.poolContract.distributeRewards.selector, address(reward), poolRewardAmount));
+            address(pool.poolContract).call(
+                abi.encodeWithSelector(pool.poolContract.distributeRewards.selector, address(reward), poolRewardAmount)
+            );
         }
 
         if (treasury != address(0) && treasury != address(this) && platformFeeAmount > 0) {
@@ -207,7 +234,7 @@ contract MultiRewardsLiquidityMiningManagerV2 is TokenSaver {
             reward.safeTransfer(_msgSender(), distributorIncentiveAmount);
             emit DistributorIncentiveIssued(_msgSender(), distributorIncentiveAmount);
         }
-       
+
         uint256 leftOverReward = reward.balanceOf(address(this));
 
         // send back excess but ignore dust
@@ -218,7 +245,7 @@ contract MultiRewardsLiquidityMiningManagerV2 is TokenSaver {
         emit RewardsDistributed(_msgSender(), totalRewardAmount);
     }
 
-    function getPools() external view returns(Pool[] memory result) {
+    function getPools() external view returns (Pool[] memory result) {
         return pools;
     }
 }

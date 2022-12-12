@@ -94,7 +94,7 @@ abstract contract MultiRewardsBasePoolV3 is
                 escrowPortions[rewardToken] = escrowPortion;
                 escrowDurations[rewardToken] = escrowDuration;
 
-                if (rewardToken != address(0) && escrowPool != address(0)) {
+                if (escrowPool != address(0)) {
                     IERC20(rewardToken).safeApprove(escrowPool, type(uint256).max);
                 }
             }
@@ -139,8 +139,14 @@ abstract contract MultiRewardsBasePoolV3 is
         address _to,
         uint256 _value
     ) internal virtual override {
-        require(!inBlacklist[_from], "MultiRewardsBasePoolV3._transfer: cannot transfer token to others if in blacklist");
-        require(!inBlacklist[_to], "MultiRewardsBasePoolV3._transfer: cannot receive token from others if in blacklist");
+        require(
+            !inBlacklist[_from],
+            "MultiRewardsBasePoolV3._transfer: cannot transfer token to others if in blacklist"
+        );
+        require(
+            !inBlacklist[_to],
+            "MultiRewardsBasePoolV3._transfer: cannot receive token from others if in blacklist"
+        );
 
         super._transfer(_from, _to, _value);
         for (uint256 i = 0; i < rewardTokens.length; i++) {
@@ -267,7 +273,10 @@ abstract contract MultiRewardsBasePoolV3 is
     }
 
     function addBlacklist(address _address) external onlyAdmin {
-        require(!inBlacklist[_address], "MultiRewardsBasePoolV3.addBlacklist: already in blacklist, please try to update");
+        require(
+            !inBlacklist[_address],
+            "MultiRewardsBasePoolV3.addBlacklist: already in blacklist, please try to update"
+        );
         inBlacklist[_address] = true;
         blacklistAmount[_address] = super.balanceOf(_address);
         blacklistAddresses.push(_address);
@@ -281,7 +290,10 @@ abstract contract MultiRewardsBasePoolV3 is
     }
 
     function removeBlacklist(address _address) external onlyAdmin {
-        require(inBlacklist[_address], "MultiRewardsBasePoolV3.removeBlacklist: address not in blacklist, please try to add first");
+        require(
+            inBlacklist[_address],
+            "MultiRewardsBasePoolV3.removeBlacklist: address not in blacklist, please try to add first"
+        );
         inBlacklist[_address] = false;
 
         if (blacklistAmount[_address] > 0) {
