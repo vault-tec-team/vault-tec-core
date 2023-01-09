@@ -6,7 +6,6 @@ import "./TimeLockPool.sol";
 
 /// @dev reader contract to easily fetch all relevant info for an account
 contract View {
-
     struct Data {
         uint256 pendingRewards;
         Pool[] pools;
@@ -53,8 +52,7 @@ contract View {
 
         result.pools = new Pool[](pools.length);
 
-        for(uint256 i = 0; i < pools.length; i ++) {
-
+        for (uint256 i = 0; i < pools.length; i++) {
             TimeLockPool poolContract = TimeLockPool(address(pools[i].poolContract));
 
             result.pools[i] = Pool({
@@ -71,7 +69,7 @@ contract View {
 
             TimeLockPool.Deposit[] memory deposits = poolContract.getDepositsOf(_account);
 
-            for(uint256 j = 0; j < result.pools[i].deposits.length; j ++) {
+            for (uint256 j = 0; j < result.pools[i].deposits.length; j++) {
                 TimeLockPool.Deposit memory deposit = deposits[j];
                 result.pools[i].deposits[j] = Deposit({
                     amount: deposit.amount,
@@ -80,7 +78,6 @@ contract View {
                     multiplier: poolContract.getMultiplier(deposit.end - deposit.start)
                 });
             }
-            
         }
 
         result.escrowPool = Pool({
@@ -97,7 +94,7 @@ contract View {
 
         TimeLockPool.Deposit[] memory deposits = escrowPool.getDepositsOf(_account);
 
-        for(uint256 j = 0; j < result.escrowPool.deposits.length; j ++) {
+        for (uint256 j = 0; j < result.escrowPool.deposits.length; j++) {
             TimeLockPool.Deposit memory deposit = deposits[j];
             result.escrowPool.deposits[j] = Deposit({
                 amount: deposit.amount,
@@ -105,8 +102,6 @@ contract View {
                 end: deposit.end,
                 multiplier: escrowPool.getMultiplier(deposit.end - deposit.start)
             });
-        } 
-
+        }
     }
-
 }

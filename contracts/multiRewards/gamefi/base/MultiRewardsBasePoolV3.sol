@@ -247,13 +247,13 @@ abstract contract MultiRewardsBasePoolV3 is
         emit EscrowPoolUpdated(_targetRewardToken, _newEscrowPool);
     }
 
-    function updateEscrowPortions(address _targetRewardToken, uint256 _newEscrowPortion) external onlyAdmin {
+    function updateEscrowPortion(address _targetRewardToken, uint256 _newEscrowPortion) external onlyAdmin {
         // how much is escrowed 1e18 == 100%
         require(
             rewardTokensList[_targetRewardToken],
-            "MultiRewardsBasePoolV3.updateEscrowPortions: reward token not in the list"
+            "MultiRewardsBasePoolV3.updateEscrowPortion: reward token not in the list"
         );
-        require(_newEscrowPortion <= 1e18, "MultiRewardsBasePoolV3.updateEscrowPortions: cannot escrow more than 100%");
+        require(_newEscrowPortion <= 1e18, "MultiRewardsBasePoolV3.updateEscrowPortion: cannot escrow more than 100%");
 
         escrowPortions[_targetRewardToken] = _newEscrowPortion;
 

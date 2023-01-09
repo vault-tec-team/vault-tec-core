@@ -98,7 +98,6 @@ abstract contract MultiRewardsBasePoolV2 is
         }
 
         _setupRole(ADMIN_ROLE, msg.sender);
-        _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
     }
 
     /// @dev A modifier which checks that the caller has the admin role.
@@ -227,13 +226,13 @@ abstract contract MultiRewardsBasePoolV2 is
         emit EscrowPoolUpdated(_targetRewardToken, _newEscrowPool);
     }
 
-    function updateEscrowPortions(address _targetRewardToken, uint256 _newEscrowPortion) external onlyAdmin {
+    function updateEscrowPortion(address _targetRewardToken, uint256 _newEscrowPortion) external onlyAdmin {
         // how much is escrowed 1e18 == 100%
         require(
             rewardTokensList[_targetRewardToken],
-            "MultiRewardsBasePoolV2.updateEscrowPortions: reward token not in the list"
+            "MultiRewardsBasePoolV2.updateEscrowPortion: reward token not in the list"
         );
-        require(_newEscrowPortion <= 1e18, "MultiRewardsBasePoolV2.updateEscrowPortions: cannot escrow more than 100%");
+        require(_newEscrowPortion <= 1e18, "MultiRewardsBasePoolV2.updateEscrowPortion: cannot escrow more than 100%");
 
         escrowPortions[_targetRewardToken] = _newEscrowPortion;
 
