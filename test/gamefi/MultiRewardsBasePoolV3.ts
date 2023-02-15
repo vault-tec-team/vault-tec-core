@@ -269,6 +269,12 @@ describe("BasePool - MultiRewardsV3", function () {
             await expect(basePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_1)).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
         });
 
+        it("Should fail when tokens are not in the reward token list", async () => {
+            await depositToken.approve(basePool.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_1);
+            await basePool.mint(account1.address, BASE_POOL_MINT_AMOUNT);
+            await expect(basePool.distributeRewards(depositToken.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_1)).to.be.revertedWith("MultiRewardsBasePoolV3.distributeRewards: reward token not in the list");
+        });
+
         it("Should work", async() => {
             await basePool.mint(account1.address, BASE_POOL_MINT_AMOUNT);
 
@@ -308,6 +314,11 @@ describe("BasePool - MultiRewardsV3", function () {
         beforeEach(async() => {
             await rewardToken1.approve(basePool.address, constants.MaxUint256);
             await rewardToken2.approve(basePool.address, constants.MaxUint256);
+        });
+
+        it("Should fail when tries to claim tokens not in the reward token list", async () => {
+            await basePool.mint(account1.address, BASE_POOL_MINT_AMOUNT);
+            await expect(basePool.claimRewards(depositToken.address, account2.address)).to.be.revertedWith("MultiRewardsBasePoolV3.claimRewards: reward token not in the list");
         });
 
         it("First claim single holder", async() => {

@@ -200,11 +200,15 @@ abstract contract MultiRewardsBasePoolV3 is
     }
 
     function distributeRewards(address _reward, uint256 _amount) external override nonReentrant {
+        require(rewardTokensList[_reward], "MultiRewardsBasePoolV3.distributeRewards: reward token not in the list");
+
         IERC20(_reward).safeTransferFrom(_msgSender(), address(this), _amount);
         _distributeRewards(_reward, _amount);
     }
 
     function claimRewards(address _reward, address _receiver) public virtual {
+        require(rewardTokensList[_reward], "MultiRewardsBasePoolV3.claimRewards: reward token not in the list");
+        
         uint256 rewardAmount = _prepareCollect(_reward, _msgSender());
         uint256 escrowedRewardAmount = (rewardAmount * escrowPortions[_reward]) / 1e18;
         uint256 nonEscrowedRewardAmount = rewardAmount - escrowedRewardAmount;
