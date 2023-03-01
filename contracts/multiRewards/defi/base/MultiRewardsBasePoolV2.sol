@@ -180,6 +180,7 @@ abstract contract MultiRewardsBasePoolV2 is
 
     function distributeRewards(address _reward, uint256 _amount) external override nonReentrant {
         require(rewardTokensList[_reward], "MultiRewardsBasePoolV2.distributeRewards: reward token not in the list");
+
         IERC20(_reward).safeTransferFrom(_msgSender(), address(this), _amount);
         _distributeRewards(_reward, _amount);
     }

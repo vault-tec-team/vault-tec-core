@@ -13,8 +13,8 @@ contract LiquidityMiningManager is TokenSaver {
     bytes32 public constant REWARD_DISTRIBUTOR_ROLE = keccak256("REWARD_DISTRIBUTOR_ROLE");
     uint256 public MAX_POOL_COUNT = 10;
 
-    IERC20 immutable public reward;
-    address immutable public rewardSource;
+    IERC20 public immutable reward;
+    address public rewardSource;
     uint256 public rewardPerSecond; //total reward amount per second
     uint256 public lastDistribution; //when rewards were last pushed
     uint256 public totalWeight;
@@ -27,13 +27,16 @@ contract LiquidityMiningManager is TokenSaver {
         uint256 weight;
     }
 
-    modifier onlyGov {
+    modifier onlyGov() {
         require(hasRole(GOV_ROLE, _msgSender()), "LiquidityMiningManager.onlyGov: permission denied");
         _;
     }
 
-    modifier onlyRewardDistributor {
-        require(hasRole(REWARD_DISTRIBUTOR_ROLE, _msgSender()), "LiquidityMiningManager.onlyRewardDistributor: permission denied");
+    modifier onlyRewardDistributor() {
+        require(
+            hasRole(REWARD_DISTRIBUTOR_ROLE, _msgSender()),
+            "LiquidityMiningManager.onlyRewardDistributor: permission denied"
+        );
         _;
     }
 
@@ -41,13 +44,15 @@ contract LiquidityMiningManager is TokenSaver {
     event PoolRemoved(uint256 indexed poolId, address indexed pool);
     event WeightAdjusted(uint256 indexed poolId, address indexed pool, uint256 newWeight);
     event RewardsPerSecondSet(uint256 rewardsPerSecond);
+    event RewardSourceSet(address rewardSource);
     event RewardsDistributed(address _from, uint256 indexed _amount);
 
     constructor(address _reward, address _rewardSource) {
         require(_reward != address(0), "LiquidityMiningManager.constructor: reward token must be set");
-        require(_rewardSource != address(0), "LiquidityMiningManager.constructor: rewardSource token must be set");
+        require(_rewardSource != address(0), "LiquidityMiningManager.constructor: rewardSource address must be set");
         reward = IERC20(_reward);
         rewardSource = _rewardSource;
+        emit RewardSourceSet(_rewardSource);
     }
 
     function addPool(address _poolContract, uint256 _weight) external onlyGov {
@@ -56,12 +61,9 @@ contract LiquidityMiningManager is TokenSaver {
         require(!poolAdded[_poolContract], "LiquidityMiningManager.addPool: Pool already added");
         require(pools.length < MAX_POOL_COUNT, "LiquidityMiningManager.addPool: Max amount of pools reached");
         // add pool
-        pools.push(Pool({
-            poolContract: IBasePool(_poolContract),
-            weight: _weight
-        }));
+        pools.push(Pool({ poolContract: IBasePool(_poolContract), weight: _weight }));
         poolAdded[_poolContract] = true;
-        
+
         // increase totalWeight
         totalWeight += _weight;
 
@@ -72,13 +74,12 @@ contract LiquidityMiningManager is TokenSaver {
     }
 
     function removePool(uint256 _poolId) external onlyGov {
-        require(_poolId < pools.length, "LiquidityMiningManager.removePool: Pool does not exist");
         distributeRewards();
         address poolAddress = address(pools[_poolId].poolContract);
 
         // decrease totalWeight
         totalWeight -= pools[_poolId].weight;
-        
+
         // remove pool
         pools[_poolId] = pools[pools.length - 1];
         pools.pop();
@@ -91,7 +92,6 @@ contract LiquidityMiningManager is TokenSaver {
     }
 
     function adjustWeight(uint256 _poolId, uint256 _newWeight) external onlyGov {
-        require(_poolId < pools.length, "LiquidityMiningManager.adjustWeight: Pool does not exist");
         distributeRewards();
         Pool storage pool = pools[_poolId];
 
@@ -110,41 +110,55 @@ contract LiquidityMiningManager is TokenSaver {
         emit RewardsPerSecondSet(_rewardPerSecond);
     }
 
+    function updateRewardSource(address _rewardSource) external onlyGov {
+        require(
+            _rewardSource != address(0),
+            "LiquidityMiningManager.updateRewardSource: rewardSource address must be set"
+        );
+        distributeRewards();
+        rewardSource = _rewardSource;
+
+        emit RewardSourceSet(_rewardSource);
+    }
+
     function distributeRewards() public onlyRewardDistributor {
         uint256 timePassed = block.timestamp - lastDistribution;
         uint256 totalRewardAmount = rewardPerSecond * timePassed;
+
         lastDistribution = block.timestamp;
 
         // return if pool length == 0
-        if(pools.length == 0) {
+        if (pools.length == 0) {
             return;
         }
 
         // return if accrued rewards == 0
-        if(totalRewardAmount == 0) {
+        if (totalRewardAmount == 0) {
             return;
         }
 
         reward.safeTransferFrom(rewardSource, address(this), totalRewardAmount);
 
-        for(uint256 i = 0; i < pools.length; i ++) {
+        for (uint256 i = 0; i < pools.length; i++) {
             Pool memory pool = pools[i];
-            uint256 poolRewardAmount = totalRewardAmount * pool.weight / totalWeight;
+            uint256 poolRewardAmount = (totalRewardAmount * pool.weight) / totalWeight;
             // Ignore tx failing to prevent a single pool from halting reward distribution
-            address(pool.poolContract).call(abi.encodeWithSelector(pool.poolContract.distributeRewards.selector, poolRewardAmount));
+            address(pool.poolContract).call(
+                abi.encodeWithSelector(pool.poolContract.distributeRewards.selector, poolRewardAmount)
+            );
         }
 
         uint256 leftOverReward = reward.balanceOf(address(this));
 
         // send back excess but ignore dust
-        if(leftOverReward > 1) {
+        if (leftOverReward > 1) {
             reward.safeTransfer(rewardSource, leftOverReward);
         }
 
         emit RewardsDistributed(_msgSender(), totalRewardAmount);
     }
 
-    function getPools() external view returns(Pool[] memory result) {
+    function getPools() external view returns (Pool[] memory result) {
         return pools;
     }
 }

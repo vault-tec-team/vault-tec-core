@@ -16,7 +16,7 @@ contract MultiRewardsLiquidityMiningManagerV3 is TokenSaver {
     uint256 public MAX_POOL_COUNT = 10;
 
     IERC20 public immutable reward;
-    address public immutable rewardSource;
+    address public rewardSource;
     uint256 public rewardPerSecond; //total reward amount per second
     uint256 public lastDistribution; //when rewards were last pushed
     uint256 public totalWeight;
@@ -154,7 +154,6 @@ contract MultiRewardsLiquidityMiningManagerV3 is TokenSaver {
     }
 
     function removePool(uint256 _poolId) external onlyGov {
-        require(_poolId < pools.length, "MultiRewardsLiquidityMiningManagerV3.removePool: Pool does not exist");
         distributeRewards();
         address poolAddress = address(pools[_poolId].poolContract);
 
@@ -173,7 +172,6 @@ contract MultiRewardsLiquidityMiningManagerV3 is TokenSaver {
     }
 
     function adjustWeight(uint256 _poolId, uint256 _newWeight) external onlyGov {
-        require(_poolId < pools.length, "MultiRewardsLiquidityMiningManagerV3.adjustWeight: Pool does not exist");
         distributeRewards();
         Pool storage pool = pools[_poolId];
 
@@ -190,6 +188,16 @@ contract MultiRewardsLiquidityMiningManagerV3 is TokenSaver {
         rewardPerSecond = _rewardPerSecond;
 
         emit RewardsPerSecondSet(_rewardPerSecond);
+    }
+
+    function updateRewardSource(address _rewardSource) external onlyGov {
+        require(
+            _rewardSource != address(0),
+            "MultiRewardsLiquidityMiningManagerV3.updateRewardSource: rewardSource address must be set"
+        );
+        distributeRewards();
+        rewardSource = _rewardSource;
+        emit RewardSourceSet(_rewardSource);
     }
 
     function distributeRewards() public onlyRewardDistributor {

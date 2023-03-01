@@ -3,15 +3,16 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber, constants } from "ethers";
 import hre from "hardhat";
-import { 
-    MultiRewardsLiquidityMiningManagerV2, 
-    MultiRewardsLiquidityMiningManagerV2__factory, 
+import {
+    MultiRewardsLiquidityMiningManagerV2,
+    MultiRewardsLiquidityMiningManagerV2__factory,
     TestERC20,
-    TestERC20__factory, 
+    TestERC20__factory,
     MultiRewardsTimeLockNonTransferablePoolV2,
     MultiRewardsTimeLockNonTransferablePoolV2__factory,
     TimeLockNonTransferablePool,
-    TimeLockNonTransferablePool__factory } from "../../typechain";
+    TimeLockNonTransferablePool__factory
+} from "../../typechain";
 import TimeTraveler from "../../utils/TimeTraveler";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -51,7 +52,7 @@ describe("LiquidityMiningManager - MultiRewards", function () {
 
     let timeTraveler = new TimeTraveler(hre.network.provider);
 
-    before(async() => {
+    before(async () => {
         [
             deployer,
             rewardSource,
@@ -62,7 +63,7 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             account4,
             ...signers
         ] = await hre.ethers.getSigners();
-        
+
         const testTokenFactory = new TestERC20__factory(deployer);
 
         depositToken = await testTokenFactory.deploy("Deposit Token", "DPST");
@@ -108,7 +109,7 @@ describe("LiquidityMiningManager - MultiRewards", function () {
 
         const poolFactory = new MultiRewardsTimeLockNonTransferablePoolV2__factory(deployer);
 
-        for(let i = 0; i < POOL_COUNT; i ++) {
+        for (let i = 0; i < POOL_COUNT; i++) {
             pools.push(
                 await poolFactory.deploy(
                     `Pool ${i}`,
@@ -122,7 +123,7 @@ describe("LiquidityMiningManager - MultiRewards", function () {
                     600,
                     ESCROW_DURATION_2
                 )
-            );         
+            );
         }
 
         // assign gov role to account1
@@ -141,105 +142,105 @@ describe("LiquidityMiningManager - MultiRewards", function () {
         await timeTraveler.snapshot();
     });
 
-    beforeEach(async() => {
+    beforeEach(async () => {
         await timeTraveler.revertSnapshot();
     });
 
-    describe("Constructor", function() {
+    describe("Constructor", function () {
         it("Cannot deploy with zero reward token address", async function () {
             await expect((new MultiRewardsLiquidityMiningManagerV2__factory(deployer))
                 .deploy(ZERO_ADDRESS, rewardSource.address, DISTRIBUTOR_INCENTIVE, PLATFORM_FEE, treasury.address))
                 .to.be.revertedWith(
                     "MultiRewardsLiquidityMiningManagerV2.constructor: reward token must be set"
-            );
+                );
         });
         it("Cannot deploy with zero reward source address", async function () {
             await expect((new MultiRewardsLiquidityMiningManagerV2__factory(deployer))
                 .deploy(rewardToken1.address, ZERO_ADDRESS, DISTRIBUTOR_INCENTIVE, PLATFORM_FEE, treasury.address))
                 .to.be.revertedWith(
                     "MultiRewardsLiquidityMiningManagerV2.constructor: rewardSource must be set"
-            );
+                );
         });
         it("Cannot deploy with over 100% distributor incentive", async function () {
             await expect((new MultiRewardsLiquidityMiningManagerV2__factory(deployer))
                 .deploy(rewardToken1.address, rewardSource.address, 10001, PLATFORM_FEE, treasury.address))
                 .to.be.revertedWith(
                     "MultiRewardsLiquidityMiningManagerV2.constructor: distributorIncentive cannot be greater than 100%"
-            );
+                );
         });
         it("Cannot deploy with over 100% platform fee", async function () {
             await expect((new MultiRewardsLiquidityMiningManagerV2__factory(deployer))
                 .deploy(rewardToken1.address, rewardSource.address, DISTRIBUTOR_INCENTIVE, 10001, treasury.address))
                 .to.be.revertedWith(
                     "MultiRewardsLiquidityMiningManagerV2.constructor: platformFee cannot be greater than 100%"
-            );
+                );
         });
         it("Cannot deploy with zero treasury address if has platform fee", async function () {
             await expect((new MultiRewardsLiquidityMiningManagerV2__factory(deployer))
                 .deploy(rewardToken1.address, rewardSource.address, DISTRIBUTOR_INCENTIVE, PLATFORM_FEE, ZERO_ADDRESS))
                 .to.be.revertedWith(
                     "MultiRewardsLiquidityMiningManagerV2.constructor: treasury must be set"
-            );
+                );
         });
     });
 
-    describe("Set Fees", function() {
+    describe("Set Fees", function () {
         const NEW_DISTRIBUTOR_INCENTIVE = 200;
         const NEW_PLATFORM_FEE = 800;
 
-        it("cannot setFees if not feeManager", async function() {
+        it("cannot setFees if not feeManager", async function () {
             await expect(liquidityMiningManager1.connect(account1).setFees(NEW_DISTRIBUTOR_INCENTIVE, NEW_PLATFORM_FEE)).to.be.revertedWith(
-              "MultiRewardsLiquidityMiningManagerV2.onlyFeeManager: permission denied"
+                "MultiRewardsLiquidityMiningManagerV2.onlyFeeManager: permission denied"
             );
         })
-        
-        context("With feeManager role", function() {
+
+        context("With feeManager role", function () {
             beforeEach(async () => {
                 let feeManagerRole = await liquidityMiningManager1.FEE_MANAGER_ROLE();
                 await liquidityMiningManager1.connect(deployer).grantRole(feeManagerRole, account1.address);
             })
-            it("cannot setFees with over 100% distributor incentive", async function() {
+            it("cannot setFees with over 100% distributor incentive", async function () {
                 await expect(liquidityMiningManager1.connect(account1).setFees(10001, NEW_PLATFORM_FEE)).to.be.revertedWith(
                     "MultiRewardsLiquidityMiningManagerV2.setFees: distributorIncentive cannot be greater than 100%"
                 );
             })
-            it("cannot setFees with over 100% platform fee", async function() {
+            it("cannot setFees with over 100% platform fee", async function () {
                 await expect(liquidityMiningManager1.connect(account1).setFees(NEW_DISTRIBUTOR_INCENTIVE, 10001)).to.be.revertedWith(
                     "MultiRewardsLiquidityMiningManagerV2.setFees: platformFee cannot be greater than 100%"
                 );
             })
-            it("can emit correct event for new fees", async function() {
+            it("can emit correct event for new fees", async function () {
                 await expect(await liquidityMiningManager1.connect(account1).setFees(NEW_DISTRIBUTOR_INCENTIVE, NEW_PLATFORM_FEE))
-                  .to.emit(liquidityMiningManager1, 'DistributorIncentiveSet')
+                    .to.emit(liquidityMiningManager1, 'DistributorIncentiveSet')
                     .withArgs(NEW_DISTRIBUTOR_INCENTIVE)
-                  .to.emit(liquidityMiningManager1, 'PlatformFeeSet')
+                    .to.emit(liquidityMiningManager1, 'PlatformFeeSet')
                     .withArgs(NEW_PLATFORM_FEE);
             })
         })
     });
 
-    describe("Set Treasury", function() {
-        it("cannot setTreasury if not feeManager", async function() {
+    describe("Set Treasury", function () {
+        it("cannot setTreasury if not feeManager", async function () {
             await expect(liquidityMiningManager1.connect(account1).setTreasury(account2.address)).to.be.revertedWith(
-              "MultiRewardsLiquidityMiningManagerV2.onlyFeeManager: permission denied"
+                "MultiRewardsLiquidityMiningManagerV2.onlyFeeManager: permission denied"
             );
         })
-        
-        context("With feeManager role", function() {
+
+        context("With feeManager role", function () {
             beforeEach(async () => {
                 let feeManagerRole = await liquidityMiningManager1.FEE_MANAGER_ROLE();
                 await liquidityMiningManager1.connect(deployer).grantRole(feeManagerRole, account1.address);
             })
-            it("can emit correct event for new feeManager", async function() {
+            it("can emit correct event for new feeManager", async function () {
                 await expect(await liquidityMiningManager1.connect(account1).setTreasury(account2.address))
-                  .to.emit(liquidityMiningManager1, 'TreasurySet')
+                    .to.emit(liquidityMiningManager1, 'TreasurySet')
                     .withArgs(account2.address);
             })
         })
     });
 
-    describe("Adding pools", async() => {
-        it("Adding a single pool", async() => {
+    describe("Adding pools", async () => {
+        it("Adding a single pool", async () => {
             const WEIGHT = parseEther("1");
             await liquidityMiningManager1.addPool(pools[0].address, WEIGHT);
             await liquidityMiningManager2.addPool(pools[0].address, WEIGHT);
@@ -255,7 +256,7 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             expect(totalWeight).to.eq(WEIGHT);
         });
 
-        it("Adding multiple pools", async() => {
+        it("Adding multiple pools", async () => {
             const WEIGHT_0 = parseEther("1");
             const WEIGHT_1 = parseEther("3");
 
@@ -277,22 +278,22 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             expect(totalWeight).to.eq(WEIGHT_0.add(WEIGHT_1));
         })
 
-        it("Adding a pool twice should fail", async() => {
+        it("Adding a pool twice should fail", async () => {
             await liquidityMiningManager1.addPool(pools[0].address, 0);
             await expect(liquidityMiningManager1.addPool(pools[0].address, 0)).to.be.revertedWith("MultiRewardsLiquidityMiningManagerV2.addPool: Pool already added");
         });
 
-        it("Adding a pool from a non gov address should fail", async() => {
+        it("Adding a pool from a non gov address should fail", async () => {
             await expect(liquidityMiningManager1.connect(account2).addPool(pools[0].address, 0)).to.be.revertedWith("MultiRewardsLiquidityMiningManagerV2.onlyGov: permission denied");
         });
     });
 
-    describe("Removing pools", async() => {
+    describe("Removing pools", async () => {
         let weights: BigNumber[] = [];
         let poolAddresses: string[] = [];
         let startingTotalWeight: BigNumber;
 
-        beforeEach(async() => {
+        beforeEach(async () => {
             weights = [];
             poolAddresses = [];
             startingTotalWeight = BigNumber.from(0);
@@ -308,11 +309,11 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             startingTotalWeight = await liquidityMiningManager1.totalWeight();
         });
 
-        it("Removing last pool in list", async() => {
+        it("Removing last pool in list", async () => {
             await liquidityMiningManager1.removePool(pools.length - 1);
 
             const contractPools = await liquidityMiningManager1.getPools();
-            for(let i = 0; i < contractPools.length; i ++) {
+            for (let i = 0; i < contractPools.length; i++) {
                 expect(contractPools[i].poolContract).to.eq(poolAddresses[i]);
                 expect(contractPools[i].weight).to.eq(weights[i]);
 
@@ -327,7 +328,7 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             expect(contractPools.length).to.eq(pools.length - 1);
         });
 
-        it("Removing a pool in the beginning of the list", async() => {
+        it("Removing a pool in the beginning of the list", async () => {
             await liquidityMiningManager1.removePool(0);
 
             const contractPools = await liquidityMiningManager1.getPools();
@@ -338,7 +339,7 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             poolAddresses[0] = poolAddresses[poolAddresses.length - 1];
             poolAddresses.pop();
 
-            for(let i = 0; i < contractPools.length; i ++) {
+            for (let i = 0; i < contractPools.length; i++) {
                 expect(contractPools[i].poolContract).to.eq(poolAddresses[i]);
                 expect(contractPools[i].weight).to.eq(weightsCopy[i]);
             }
@@ -348,14 +349,14 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             expect(contractPools.length).to.eq(pools.length - 1);
         });
 
-        it("Removing all pools", async() => {
+        it("Removing all pools", async () => {
             // remove all pools
-            for (let i = 0; i < pools.length; i ++) {
+            for (let i = 0; i < pools.length; i++) {
                 // remove pool 0 each time as the array gets reordered
                 await liquidityMiningManager1.removePool(0);
             }
 
-            for(const pool of pools) {
+            for (const pool of pools) {
                 const poolAdded = await liquidityMiningManager1.poolAdded(pool.address);
                 expect(poolAdded).to.eq(false);
             }
@@ -366,87 +367,165 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             expect(contractPools.length).to.eq(0);
         })
 
-        it("Removing a pool from a non gov address should fail", async() => {
+        it("Removing a pool from a non gov address should fail", async () => {
             await expect(liquidityMiningManager1.connect(account2).removePool(0)).to.be.revertedWith("MultiRewardsLiquidityMiningManagerV2.onlyGov: permission denied");
         });
     });
 
-    describe("Distributing rewards", async() => {
-        beforeEach(async() => {
+    describe("Update rewardSource", async () => {
+        beforeEach(async () => {
             let i = 0;
             for (const pool of pools) {
                 await liquidityMiningManager1.addPool(pool.address, parseEther((i + 1).toString()));
                 await depositToken.mint(account1.address, parseEther("1"));
                 await depositToken.connect(account1).approve(pools[i].address, parseEther("1"));
                 await pool.connect(account1).deposit(parseEther("1"), 600, await account1.getAddress());
-                i ++;
-            } 
+                i++;
+            }
+            let rewardDistributorRole = await liquidityMiningManager1.REWARD_DISTRIBUTOR_ROLE();
+            await liquidityMiningManager1.connect(deployer).grantRole(rewardDistributorRole, account1.address);
         });
 
-        it("Distributing rewards from an address which does not have the REWARD_DISTRIBUTOR_ROLE", async() => {
+        it("RewardSource address can be updated", async () => {
+            expect(await liquidityMiningManager1.rewardSource()).to.eq(rewardSource.address);
+            await liquidityMiningManager1.updateRewardSource(account4.address);
+            expect(await liquidityMiningManager1.rewardSource()).to.eq(account4.address);
+        });
+
+        it("Update rewardSource from a non gov address should fail", async () => {
+            await expect(liquidityMiningManager1.connect(account2).updateRewardSource(account4.address)).to.be.revertedWith("MultiRewardsLiquidityMiningManagerV2.onlyGov: permission denied");
+        });
+
+        it("Reward should be distributed from the new rewardSource address after update", async () => {
+            const REWARDS_PER_SECOND = parseEther("1");
+            // Enable rewards
+            await liquidityMiningManager1.setRewardPerSecond(REWARDS_PER_SECOND);
+
+            const distributorBalanceBefore = await rewardToken1.balanceOf(account1.address);
+            const treasuryBalanceBefore = await rewardToken1.balanceOf(treasury.address);
+
+            const rewardSourceBalanceBefore = await rewardToken1.balanceOf(rewardSource.address);
+            const lastDistributionBefore = await liquidityMiningManager1.lastDistribution();
+            await liquidityMiningManager1.connect(account1).distributeRewards();
+            const rewardSourceBalanceAfter = await rewardToken1.balanceOf(rewardSource.address);
+            const lastDistributionAfter = await liquidityMiningManager1.lastDistribution();
+
+            const totalWeight = await liquidityMiningManager1.totalWeight();
+            const expectedRewardsDistributed = (lastDistributionAfter.sub(lastDistributionBefore)).mul(REWARDS_PER_SECOND);
+            const expectedDistributorIncentive = expectedRewardsDistributed.mul(DISTRIBUTOR_INCENTIVE).div(10000);
+            const expectedPlatformFee = expectedRewardsDistributed.mul(PLATFORM_FEE).div(10000);
+
+            const distributorBalanceAfter = await rewardToken1.balanceOf(account1.address);
+            const treasuryBalanceAfter = await rewardToken1.balanceOf(treasury.address);
+
+            expect(distributorBalanceAfter.sub(distributorBalanceBefore)).to.eq(expectedDistributorIncentive);
+            expect(treasuryBalanceAfter.sub(treasuryBalanceBefore)).to.eq(expectedPlatformFee);
+            expect(rewardSourceBalanceAfter).to.eq(rewardSourceBalanceBefore.sub((expectedRewardsDistributed.add(expectedDistributorIncentive).add(expectedPlatformFee))));
+
+            for (let i = 0; i < pools.length; i++) {
+                const poolTokenBalance = await rewardToken1.balanceOf(pools[i].address);
+                const poolWeight = (await liquidityMiningManager1.pools(i)).weight;
+                const expectedPoolTokenBalance = expectedRewardsDistributed.mul(poolWeight).div(totalWeight);
+                expect(expectedPoolTokenBalance).to.eq(poolTokenBalance);
+            }
+
+            await rewardToken1.mint(account4.address, INITIAL_REWARD_MINT);
+            await rewardToken1.connect(account4).approve(liquidityMiningManager1.address, constants.MaxUint256);
+            await liquidityMiningManager1.updateRewardSource(account4.address);
+
+            const oldRewardSourceBalanceBefore = await rewardToken1.balanceOf(rewardSource.address);
+            const newRewardSourceBalanceBefore = await rewardToken1.balanceOf(account4.address);
+            const newLastDistributionBefore = await liquidityMiningManager1.lastDistribution();
+            await liquidityMiningManager1.distributeRewards();
+            const oldRewardSourceBalanceAfter = await rewardToken1.balanceOf(rewardSource.address);
+            const newRewardSourceBalanceAfter = await rewardToken1.balanceOf(account4.address);
+            const newLastDistributionAfter = await liquidityMiningManager1.lastDistribution();
+
+            const newExpectedRewardsDistributed = (newLastDistributionAfter.sub(newLastDistributionBefore)).mul(REWARDS_PER_SECOND);
+            const newExpectedDistributorIncentive = newExpectedRewardsDistributed.mul(DISTRIBUTOR_INCENTIVE).div(10000);
+            const newExpectedPlatformFee = newExpectedRewardsDistributed.mul(PLATFORM_FEE).div(10000);
+
+            expect(newRewardSourceBalanceAfter).to.eq(newRewardSourceBalanceBefore.sub((newExpectedRewardsDistributed.add(newExpectedDistributorIncentive).add(newExpectedPlatformFee))));
+            expect(oldRewardSourceBalanceAfter).to.eq(oldRewardSourceBalanceBefore.sub(0));
+        });
+    });
+
+    describe("Distributing rewards", async () => {
+        beforeEach(async () => {
+            let i = 0;
+            for (const pool of pools) {
+                await liquidityMiningManager1.addPool(pool.address, parseEther((i + 1).toString()));
+                await depositToken.mint(account1.address, parseEther("1"));
+                await depositToken.connect(account1).approve(pools[i].address, parseEther("1"));
+                await pool.connect(account1).deposit(parseEther("1"), 600, await account1.getAddress());
+                i++;
+            }
+        });
+
+        it("Distributing rewards from an address which does not have the REWARD_DISTRIBUTOR_ROLE", async () => {
             await expect(liquidityMiningManager1.connect(account2.address).distributeRewards()).to.revertedWith("MultiRewardsLiquidityMiningManagerV2.onlyRewardDistributor: permission denied");
         });
 
-        context("With rewardDistributor role", function() {
+        context("With rewardDistributor role", function () {
             beforeEach(async () => {
                 let rewardDistributorRole = await liquidityMiningManager1.REWARD_DISTRIBUTOR_ROLE();
                 await liquidityMiningManager1.connect(deployer).grantRole(rewardDistributorRole, account1.address);
             })
 
-            it("Distributing zero rewards", async() => {
+            it("Distributing zero rewards", async () => {
                 await liquidityMiningManager1.connect(account1).distributeRewards();
                 // @ts-ignore
                 const lastBlockTimestamp = (await account1.provider?.getBlock("latest")).timestamp;
                 const lastRewardDistribution = await liquidityMiningManager1.lastDistribution();
                 expect(lastBlockTimestamp).to.eq(lastRewardDistribution);
             });
-    
-            it("Should return any excess rewards", async() => {
+
+            it("Should return any excess rewards", async () => {
                 const POOL_WEIGHT = parseEther("1");
                 const REWARDS_PER_SECOND = parseEther("1");
-    
+
                 // add non contract pool
                 await liquidityMiningManager1.addPool("0x0000000000000000000000000000000000000001", POOL_WEIGHT);
                 const totalWeight = await liquidityMiningManager1.totalWeight();
                 await liquidityMiningManager1.setRewardPerSecond(REWARDS_PER_SECOND);
-                
+
                 const rewardSourceBalanceBefore = await rewardToken1.balanceOf(rewardSource.address);
                 const lastDistributionBefore = await liquidityMiningManager1.lastDistribution();
                 await liquidityMiningManager1.connect(account1).distributeRewards();
                 const rewardSourceBalanceAfter = await rewardToken1.balanceOf(rewardSource.address);
                 const lastDistributionAfter = await liquidityMiningManager1.lastDistribution();
-    
+
                 const expectedRewardsDistributed = (lastDistributionAfter.sub(lastDistributionBefore)).mul(REWARDS_PER_SECOND);
                 const expectedDistributorIncentive = expectedRewardsDistributed.mul(DISTRIBUTOR_INCENTIVE).div(10000);
                 const expectedPlatformFee = expectedRewardsDistributed.mul(PLATFORM_FEE).div(10000);
                 const expectedRewardsReturned = expectedRewardsDistributed.mul(POOL_WEIGHT).div(totalWeight);
-    
+
                 expect(rewardSourceBalanceAfter).to.eq(rewardSourceBalanceBefore.sub(expectedRewardsDistributed).sub(expectedDistributorIncentive).sub(expectedPlatformFee).add(expectedRewardsReturned).add(1));
             });
-    
-            it("Should work", async() => {
+
+            it("Should work", async () => {
                 const REWARDS_PER_SECOND = parseEther("1");
                 // Enable rewards
                 await liquidityMiningManager1.setRewardPerSecond(REWARDS_PER_SECOND);
                 const distributorBalanceBefore = await rewardToken1.balanceOf(account1.address);
                 const treasuryBalanceBefore = await rewardToken1.balanceOf(treasury.address);
-    
+
                 const lastDistributionBefore = await liquidityMiningManager1.lastDistribution();
                 await liquidityMiningManager1.connect(account1).distributeRewards();
                 const lastDistributionAfter = await liquidityMiningManager1.lastDistribution();
-    
+
                 const totalWeight = await liquidityMiningManager1.totalWeight();
                 const expectedRewardsDistributed = (lastDistributionAfter.sub(lastDistributionBefore)).mul(REWARDS_PER_SECOND);
                 const expectedDistributorIncentive = expectedRewardsDistributed.mul(DISTRIBUTOR_INCENTIVE).div(10000);
                 const expectedPlatformFee = expectedRewardsDistributed.mul(PLATFORM_FEE).div(10000);
-    
-                for(let i = 0; i < pools.length; i ++) {
+
+                for (let i = 0; i < pools.length; i++) {
                     const poolTokenBalance = await rewardToken1.balanceOf(pools[i].address);
                     const poolWeight = (await liquidityMiningManager1.pools(i)).weight;
                     const expectedPoolTokenBalance = expectedRewardsDistributed.mul(poolWeight).div(totalWeight);
                     expect(expectedPoolTokenBalance).to.eq(poolTokenBalance);
                 }
-    
+
                 const distributorBalanceAfter = await rewardToken1.balanceOf(account1.address);
                 const treasuryBalanceAfter = await rewardToken1.balanceOf(treasury.address);
 
@@ -454,7 +533,7 @@ describe("LiquidityMiningManager - MultiRewards", function () {
                 expect(treasuryBalanceAfter.sub(treasuryBalanceBefore)).to.eq(expectedPlatformFee);
             });
 
-            it("Should not issue platform fee if treasury is zero address", async() => {
+            it("Should not issue platform fee if treasury is zero address", async () => {
                 let feeManagerRole = await liquidityMiningManager1.FEE_MANAGER_ROLE();
                 await liquidityMiningManager1.connect(deployer).grantRole(feeManagerRole, account1.address);
                 await liquidityMiningManager1.connect(account1).setTreasury(ZERO_ADDRESS);
@@ -464,25 +543,25 @@ describe("LiquidityMiningManager - MultiRewards", function () {
                 await liquidityMiningManager1.setRewardPerSecond(REWARDS_PER_SECOND);
                 const distributorBalanceBefore = await rewardToken1.balanceOf(account1.address);
                 const treasuryBalanceBefore = await rewardToken1.balanceOf(treasury.address);
-    
+
                 const rewardSourceBalanceBefore = await rewardToken1.balanceOf(rewardSource.address);
                 const lastDistributionBefore = await liquidityMiningManager1.lastDistribution();
                 await liquidityMiningManager1.connect(account1).distributeRewards();
                 const rewardSourceBalanceAfter = await rewardToken1.balanceOf(rewardSource.address);
                 const lastDistributionAfter = await liquidityMiningManager1.lastDistribution();
-    
+
                 const totalWeight = await liquidityMiningManager1.totalWeight();
                 const expectedRewardsDistributed = (lastDistributionAfter.sub(lastDistributionBefore)).mul(REWARDS_PER_SECOND);
                 const expectedDistributorIncentive = expectedRewardsDistributed.mul(DISTRIBUTOR_INCENTIVE).div(10000);
                 const expectedPlatformFee = expectedRewardsDistributed.mul(PLATFORM_FEE).div(10000);
-    
-                for(let i = 0; i < pools.length; i ++) {
+
+                for (let i = 0; i < pools.length; i++) {
                     const poolTokenBalance = await rewardToken1.balanceOf(pools[i].address);
                     const poolWeight = (await liquidityMiningManager1.pools(i)).weight;
                     const expectedPoolTokenBalance = expectedRewardsDistributed.mul(poolWeight).div(totalWeight);
                     expect(expectedPoolTokenBalance).to.eq(poolTokenBalance);
                 }
-    
+
                 const distributorBalanceAfter = await rewardToken1.balanceOf(account1.address);
                 const treasuryBalanceAfter = await rewardToken1.balanceOf(treasury.address);
 
@@ -494,23 +573,23 @@ describe("LiquidityMiningManager - MultiRewards", function () {
         })
     });
 
-    describe("Adjusting weight", async() => {
+    describe("Adjusting weight", async () => {
         let weights;
-        beforeEach(async() => {
+        beforeEach(async () => {
             weights = [];
             let i = 0;
             for (const pool of pools) {
                 const weight = parseEther((i + 1).toString());
                 weights.push(weight);
                 await liquidityMiningManager1.addPool(pool.address, weight);
-                i ++;
-            } 
+                i++;
+            }
         })
 
-        it("Adjust weight up", async() => {
+        it("Adjust weight up", async () => {
             const WEIGHT_INCREMENT = parseEther("1");
             const POOL_ID = 0;
-            
+
             const totalWeightBefore = await liquidityMiningManager1.totalWeight();
             const poolBefore = await liquidityMiningManager1.pools(POOL_ID);
             await liquidityMiningManager1.adjustWeight(POOL_ID, poolBefore.weight.add(WEIGHT_INCREMENT));
@@ -525,10 +604,10 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             expect(totalWeightAfter).to.eq(totalWeightBefore.add(WEIGHT_INCREMENT));
         });
 
-        it("Adjust weight down", async() => {
+        it("Adjust weight down", async () => {
             const WEIGHT_DECREMENT = parseEther("1");
             const POOL_ID = 0;
-            
+
             const totalWeightBefore = await liquidityMiningManager1.totalWeight();
             const poolBefore = await liquidityMiningManager1.pools(POOL_ID);
             await liquidityMiningManager1.adjustWeight(POOL_ID, poolBefore.weight.sub(WEIGHT_DECREMENT));
@@ -543,14 +622,14 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             expect(totalWeightAfter).to.eq(totalWeightBefore.sub(WEIGHT_DECREMENT));
         });
 
-        it("Should fail from non gov address", async() => {
+        it("Should fail from non gov address", async () => {
             await expect(liquidityMiningManager1.connect(account2).adjustWeight(0, 0)).to.be.revertedWith("MultiRewardsLiquidityMiningManagerV2.onlyGov: permission denied");
         });
 
     });
 
-    describe("Setting reward per second", async() => {
-        it("Should work", async() => {
+    describe("Setting reward per second", async () => {
+        it("Should work", async () => {
             const NEW_REWARD_RATE = parseEther("2");
 
             await liquidityMiningManager1.setRewardPerSecond(NEW_REWARD_RATE);
@@ -563,7 +642,7 @@ describe("LiquidityMiningManager - MultiRewards", function () {
             expect(rewardPerSecond).to.eq(NEW_REWARD_RATE);
         });
 
-        it("Should fail from non gov address", async() => {
+        it("Should fail from non gov address", async () => {
             await expect(liquidityMiningManager1.connect(account2).setRewardPerSecond(0)).to.be.revertedWith("MultiRewardsLiquidityMiningManagerV2.onlyGov: permission denied");
         });
     });

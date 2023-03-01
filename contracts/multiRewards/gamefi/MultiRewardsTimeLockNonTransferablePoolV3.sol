@@ -14,10 +14,11 @@ contract MultiRewardsTimeLockNonTransferablePoolV3 is MultiRewardsTimeLockPoolV3
         uint256[] memory _escrowDurations,
         uint256 _maxBonus,
         uint256 _minLockDuration,
-        uint256 _maxLockDuration
+        uint256 _maxLockDuration,
+        address _badgeManager
     ) MultiRewardsTimeLockPoolV3(
         _name, _symbol, _depositToken, _rewardTokens, _escrowPools, _escrowPortions, _escrowDurations,
-        _maxBonus, _minLockDuration, _maxLockDuration
+        _maxBonus, _minLockDuration, _maxLockDuration, _badgeManager
     ) {}
 
     // disable transfers

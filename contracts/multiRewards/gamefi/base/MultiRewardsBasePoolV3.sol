@@ -3,7 +3,7 @@ pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
@@ -13,7 +13,7 @@ import "contracts/interfaces/ITimeLockPool.sol";
 import "contracts/base/TokenSaver.sol";
 
 abstract contract MultiRewardsBasePoolV3 is
-    ERC20Votes,
+    ERC20,
     AbstractMultiRewards,
     IMultiRewardsBasePool,
     TokenSaver,
@@ -56,7 +56,7 @@ abstract contract MultiRewardsBasePoolV3 is
         address[] memory _escrowPools,
         uint256[] memory _escrowPortions,
         uint256[] memory _escrowDurations
-    ) ERC20Permit(_name) ERC20(_name, _symbol) AbstractMultiRewards(adjustedBalanceOf, adjustedTotalSupply) {
+    ) ERC20(_name, _symbol) AbstractMultiRewards(adjustedBalanceOf, adjustedTotalSupply) {
         require(_depositToken != address(0), "MultiRewardsBasePoolV3.constructor: Deposit token must be set");
         require(
             _rewardTokens.length == _escrowPools.length,
@@ -208,7 +208,7 @@ abstract contract MultiRewardsBasePoolV3 is
 
     function claimRewards(address _reward, address _receiver) public virtual {
         require(rewardTokensList[_reward], "MultiRewardsBasePoolV3.claimRewards: reward token not in the list");
-        
+
         uint256 rewardAmount = _prepareCollect(_reward, _msgSender());
         uint256 escrowedRewardAmount = (rewardAmount * escrowPortions[_reward]) / 1e18;
         uint256 nonEscrowedRewardAmount = rewardAmount - escrowedRewardAmount;

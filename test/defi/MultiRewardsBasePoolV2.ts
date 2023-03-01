@@ -3,7 +3,7 @@ import { formatEther, parseEther } from "@ethersproject/units";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import hre from "hardhat";
-import {    
+import {
     TestMultiRewardsBasePoolV2,
     TestMultiRewardsBasePoolV2__factory,
     TestERC20,
@@ -46,7 +46,7 @@ describe("BasePool - MultiRewardsV2", function () {
 
     const timeTraveler = new TimeTraveler(hre.network.provider);
 
-    before(async() => {
+    before(async () => {
         [
             deployer,
             account1,
@@ -113,7 +113,7 @@ describe("BasePool - MultiRewardsV2", function () {
             ESCROW_DURATION
         );
 
-        const testBasePoolFactory = new TestMultiRewardsBasePoolV2__factory(deployer);    
+        const testBasePoolFactory = new TestMultiRewardsBasePoolV2__factory(deployer);
         basePool = await testBasePoolFactory.deploy(
             TOKEN_NAME,
             TOKEN_SYMBOL,
@@ -135,23 +135,23 @@ describe("BasePool - MultiRewardsV2", function () {
         await timeTraveler.snapshot();
     });
 
-    beforeEach(async() => {
-       await timeTraveler.revertSnapshot(); 
+    beforeEach(async () => {
+        await timeTraveler.revertSnapshot();
     });
 
-    describe("addRewardToken", async() => {
-        it("Should fail when not admin (deployer)", async() => {
+    describe("addRewardToken", async () => {
+        it("Should fail when not admin (deployer)", async () => {
             await expect(basePool.addRewardToken(rewardToken3.address, escrowPool3.address, ESCROW_PORTION, ESCROW_DURATION)).to.be.revertedWith("MultiRewardsBasePoolV2: only admin");
         });
 
-        it("Should not add rewards when token are already in the reward list", async() => {
+        it("Should not add rewards when token are already in the reward list", async () => {
             expect(await basePool.rewardTokensLength()).to.eq(2);
             await basePool.connect(deployer).addRewardToken(rewardToken1.address, escrowPool3.address, ESCROW_PORTION, ESCROW_DURATION);
             expect(await basePool.rewardTokensLength()).to.eq(2);
             expect(await basePool.escrowPools(rewardToken1.address)).to.eq(escrowPool1.address);
         });
 
-        it("Should work", async() => {
+        it("Should work", async () => {
             expect(await basePool.rewardTokensLength()).to.eq(2);
             await basePool.connect(deployer).addRewardToken(rewardToken3.address, escrowPool3.address, ESCROW_PORTION, ESCROW_DURATION);
             expect(await basePool.rewardTokensLength()).to.eq(3);
@@ -161,17 +161,17 @@ describe("BasePool - MultiRewardsV2", function () {
         });
     });
 
-    describe("updateRewardToken", async() => {
-        it("Should fail when not admin (deployer)", async() => {
+    describe("updateRewardToken", async () => {
+        it("Should fail when not admin (deployer)", async () => {
             await expect(basePool.updateRewardToken(rewardToken3.address, escrowPool3.address, ESCROW_PORTION, ESCROW_DURATION)).to.be.revertedWith("MultiRewardsBasePoolV2: only admin");
         });
 
-        it("Should not update rewards when token are not already in the reward list", async() => {
+        it("Should not update rewards when token are not already in the reward list", async () => {
             await expect(basePool.connect(deployer).updateRewardToken(rewardToken3.address, escrowPool3.address, ESCROW_PORTION, ESCROW_DURATION))
                 .to.be.revertedWith("MultiRewardsBasePoolV2.updateRewardToken: reward token not in the list");
         });
 
-        it("Should work", async() => {
+        it("Should work", async () => {
             expect(await basePool.rewardTokensLength()).to.eq(2);
             await basePool.connect(deployer).updateRewardToken(rewardToken1.address, escrowPool3.address, NEW_ESCROW_PORTION, NEW_ESCROW_DURATION);
             expect(await basePool.rewardTokensLength()).to.eq(2);
@@ -181,90 +181,90 @@ describe("BasePool - MultiRewardsV2", function () {
         });
     });
 
-    describe("updateEscrowPool", async() => {
-        it("Should fail when not admin (deployer)", async() => {
+    describe("updateEscrowPool", async () => {
+        it("Should fail when not admin (deployer)", async () => {
             await expect(basePool.updateEscrowPool(rewardToken3.address, escrowPool3.address)).to.be.revertedWith("MultiRewardsBasePoolV2: only admin");
         });
 
-        it("Should not update escrowPool when token are not already in the reward list", async() => {
+        it("Should not update escrowPool when token are not already in the reward list", async () => {
             await expect(basePool.connect(deployer).updateEscrowPool(rewardToken3.address, escrowPool3.address))
                 .to.be.revertedWith("MultiRewardsBasePoolV2.updateEscrowPool: reward token not in the list");
         });
 
-        it("Should not update escrowPool when escrowPool are not set", async() => {
+        it("Should not update escrowPool when escrowPool are not set", async () => {
             await expect(basePool.connect(deployer).updateEscrowPool(rewardToken2.address, constants.AddressZero))
                 .to.be.revertedWith("MultiRewardsBasePoolV2.updateEscrowPool: escrowPool must be set");
         });
 
-        it("Should work", async() => {
+        it("Should work", async () => {
             expect(await basePool.escrowPools(rewardToken1.address)).to.eq(escrowPool1.address);
             await basePool.connect(deployer).updateEscrowPool(rewardToken1.address, escrowPool3.address);
             expect(await basePool.escrowPools(rewardToken1.address)).to.eq(escrowPool3.address);
-            expect(await rewardToken1.allowance(basePool.address,escrowPool1.address)).to.eq(0);
-            expect(await rewardToken1.allowance(basePool.address,escrowPool3.address)).to.eq(constants.MaxUint256);
+            expect(await rewardToken1.allowance(basePool.address, escrowPool1.address)).to.eq(0);
+            expect(await rewardToken1.allowance(basePool.address, escrowPool3.address)).to.eq(constants.MaxUint256);
         });
     });
 
-    describe("updateEscrowPortion", async() => {
-        it("Should fail when not admin (deployer)", async() => {
-            await expect(basePool.updateEscrowPortions(rewardToken1.address, "100000000000000000")).to.be.revertedWith("MultiRewardsBasePoolV2: only admin");
+    describe("updateEscrowPortion", async () => {
+        it("Should fail when not admin (deployer)", async () => {
+            await expect(basePool.updateEscrowPortion(rewardToken1.address, "100000000000000000")).to.be.revertedWith("MultiRewardsBasePoolV2: only admin");
         });
 
-        it("Should not update escrowPortion when token are not already in the reward list", async() => {
-            await expect(basePool.connect(deployer).updateEscrowPortions(rewardToken3.address,"100000000000000000"))
-                .to.be.revertedWith("MultiRewardsBasePoolV2.updateEscrowPortions: reward token not in the list");
+        it("Should not update escrowPortion when token are not already in the reward list", async () => {
+            await expect(basePool.connect(deployer).updateEscrowPortion(rewardToken3.address, "100000000000000000"))
+                .to.be.revertedWith("MultiRewardsBasePoolV2.updateEscrowPortion: reward token not in the list");
         });
 
-        it("Should not update escrowPortion when escrowPortion is greater than 1e18", async() => {
-            await expect(basePool.connect(deployer).updateEscrowPortions(rewardToken1.address, "10000000000000000000"))
-                .to.be.revertedWith("MultiRewardsBasePoolV2.updateEscrowPortions: cannot escrow more than 100%");
+        it("Should not update escrowPortion when escrowPortion is greater than 1e18", async () => {
+            await expect(basePool.connect(deployer).updateEscrowPortion(rewardToken1.address, "10000000000000000000"))
+                .to.be.revertedWith("MultiRewardsBasePoolV2.updateEscrowPortion: cannot escrow more than 100%");
         });
 
-        it("Should work", async() => {
+        it("Should work", async () => {
             expect(await basePool.escrowPortions(rewardToken1.address)).to.eq(ESCROW_PORTION);
-            await basePool.connect(deployer).updateEscrowPortions(rewardToken1.address, NEW_ESCROW_PORTION);
+            await basePool.connect(deployer).updateEscrowPortion(rewardToken1.address, NEW_ESCROW_PORTION);
             expect(await basePool.escrowPortions(rewardToken1.address)).to.eq(NEW_ESCROW_PORTION);
         });
     });
 
-    describe("updateEscrowDuration", async() => {
-        it("Should fail when not admin (deployer)", async() => {
+    describe("updateEscrowDuration", async () => {
+        it("Should fail when not admin (deployer)", async () => {
             await expect(basePool.updateEscrowDuration(rewardToken1.address, NEW_ESCROW_DURATION)).to.be.revertedWith("MultiRewardsBasePoolV2: only admin");
         });
 
-        it("Should not update escrowDuration when token are not already in the reward list", async() => {
-            await expect(basePool.connect(deployer).updateEscrowDuration(rewardToken3.address,NEW_ESCROW_DURATION))
+        it("Should not update escrowDuration when token are not already in the reward list", async () => {
+            await expect(basePool.connect(deployer).updateEscrowDuration(rewardToken3.address, NEW_ESCROW_DURATION))
                 .to.be.revertedWith("MultiRewardsBasePoolV2.updateEscrowDuration: reward token not in the list");
         });
 
-        it("Should work", async() => {
+        it("Should work", async () => {
             expect(await basePool.escrowDurations(rewardToken1.address)).to.eq(ESCROW_DURATION);
             await basePool.connect(deployer).updateEscrowDuration(rewardToken1.address, NEW_ESCROW_DURATION);
             expect(await basePool.escrowDurations(rewardToken1.address)).to.eq(NEW_ESCROW_DURATION);
         });
     });
 
-    describe("distributeRewards", async() => {
+    describe("distributeRewards", async () => {
         const DISTRIBUTION_AMOUNT_REWARD_TOKEN_1 = parseEther("100");
         const DISTRIBUTION_AMOUNT_REWARD_TOKEN_2 = parseEther("200");
 
         const BASE_POOL_MINT_AMOUNT = parseEther("1337");
         let pointsMultiplier: BigNumber;
 
-        before(async() => {
+        before(async () => {
             pointsMultiplier = await basePool.POINTS_MULTIPLIER();
         });
 
-        beforeEach(async() => {
+        beforeEach(async () => {
             await rewardToken1.approve(basePool.address, constants.MaxUint256);
             await rewardToken2.approve(basePool.address, constants.MaxUint256);
         });
 
-        it("Should fail when there are no shares", async() => {
+        it("Should fail when there are no shares", async () => {
             await expect(basePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_1)).to.be.revertedWith("AbstractRewards._distributeRewards: total share supply is zero");
         });
 
-        it("Should fail when tokens are not approved", async() => {
+        it("Should fail when tokens are not approved", async () => {
             await rewardToken1.approve(basePool.address, 0);
             await basePool.mint(account1.address, BASE_POOL_MINT_AMOUNT);
             await expect(basePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_1)).to.be.revertedWith("ERC20: transfer amount exceeds allowance");
@@ -276,7 +276,7 @@ describe("BasePool - MultiRewardsV2", function () {
             await expect(basePool.distributeRewards(depositToken.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_1)).to.be.revertedWith("MultiRewardsBasePoolV2.distributeRewards: reward token not in the list");
         });
 
-        it("Should work", async() => {
+        it("Should work", async () => {
             await basePool.mint(account1.address, BASE_POOL_MINT_AMOUNT);
 
             const pointsPerShareBefore1 = await basePool.pointsPerShare(rewardToken1.address);
@@ -287,7 +287,7 @@ describe("BasePool - MultiRewardsV2", function () {
 
             expect(rewardToken1BalanceAfter).to.eq(rewardToken1BalanceBefore.add(DISTRIBUTION_AMOUNT_REWARD_TOKEN_1));
             expect(pointsPerShareAfter1).to.eq(pointsPerShareBefore1.add(DISTRIBUTION_AMOUNT_REWARD_TOKEN_1.mul(pointsMultiplier).div(BASE_POOL_MINT_AMOUNT)));
-            
+
             const pointsPerShareBefore2 = await basePool.pointsPerShare(rewardToken2.address);
             const rewardToken2BalanceBefore = await rewardToken2.balanceOf(basePool.address);
             await basePool.distributeRewards(rewardToken2.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_2);
@@ -299,7 +299,7 @@ describe("BasePool - MultiRewardsV2", function () {
         });
     });
 
-    describe("claimRewards", async() => {
+    describe("claimRewards", async () => {
         const DISTRIBUTION_AMOUNT_REWARD_TOKEN_11 = parseEther("100");
         const DISTRIBUTION_AMOUNT_REWARD_TOKEN_12 = parseEther("1834.9");
         const DISTRIBUTION_AMOUNT_REWARD_TOKEN_13 = parseEther("838383.848448");
@@ -308,11 +308,11 @@ describe("BasePool - MultiRewardsV2", function () {
 
         let pointsMultiplier: BigNumber;
 
-        before(async() => {
+        before(async () => {
             pointsMultiplier = await basePool.POINTS_MULTIPLIER();
         });
 
-        beforeEach(async() => {
+        beforeEach(async () => {
             await rewardToken1.approve(basePool.address, constants.MaxUint256);
             await rewardToken2.approve(basePool.address, constants.MaxUint256);
         });
@@ -322,10 +322,10 @@ describe("BasePool - MultiRewardsV2", function () {
             await expect(basePool.claimRewards(depositToken.address, account2.address)).to.be.revertedWith("MultiRewardsBasePoolV2.claimRewards: reward token not in the list");
         });
 
-        it("First claim single holder", async() => {
+        it("First claim single holder", async () => {
             await basePool.mint(account1.address, BASE_POOL_MINT_AMOUNT);
             await basePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_11);
-            
+
             const account1RewardToken1BalanceBefore = await rewardToken1.balanceOf(account1.address);
             const account2RewardToken1BalanceBefore = await rewardToken1.balanceOf(account2.address);
             await basePool.claimAll(account2.address);
@@ -344,7 +344,7 @@ describe("BasePool - MultiRewardsV2", function () {
             expect(account1RewardToken1BalanceAfter).to.eq(account1RewardToken1BalanceBefore);
         });
 
-        it("Claim multiple holders", async() => {
+        it("Claim multiple holders", async () => {
             await basePool.mint(account1.address, BASE_POOL_MINT_AMOUNT);
             await basePool.mint(account2.address, BASE_POOL_MINT_AMOUNT);
             await basePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_11);
@@ -359,7 +359,7 @@ describe("BasePool - MultiRewardsV2", function () {
             const account1WithdrawnRewards1After = await basePool.withdrawnRewardsOf(rewardToken1.address, account1.address);
             const account2WithdrawableRewardsAfter = await basePool.withdrawableRewardsOf(rewardToken1.address, account2.address);
             const account2WithdrawnRewardsAfter = await basePool.withdrawnRewardsOf(rewardToken1.address, account2.address);
-            
+
             const rewardPerAccount = DISTRIBUTION_AMOUNT_REWARD_TOKEN_11.div("2");
             const expectedEscrowed = rewardPerAccount.mul(ESCROW_PORTION).div(constants.WeiPerEther); // subtract 1
 
@@ -373,7 +373,7 @@ describe("BasePool - MultiRewardsV2", function () {
             expect(account2WithdrawnRewardsAfter).to.eq(rewardPerAccount.sub(1));
         });
 
-        it("Multiple claims, distribution and holders", async() => {
+        it("Multiple claims, distribution and holders", async () => {
             await basePool.mint(account1.address, BASE_POOL_MINT_AMOUNT);
             await basePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_11);
             await basePool.mint(account2.address, BASE_POOL_MINT_AMOUNT);
@@ -392,7 +392,7 @@ describe("BasePool - MultiRewardsV2", function () {
             const account2WithdrawnRewards = await basePool.withdrawnRewardsOf(rewardToken1.address, account2.address);
             const account1WithdrawableRewards = await basePool.withdrawableRewardsOf(rewardToken1.address, account1.address);
             const account2WithdrawableRewards = await basePool.withdrawableRewardsOf(rewardToken1.address, account2.address);
-            
+
             const account3EscrowedRewards = await escrowPool1.getTotalDeposit(account3.address);
             const account4EscrowedRewards = await escrowPool1.getTotalDeposit(account4.address);
             const account3RewardBalance = await rewardToken1.balanceOf(account3.address);
@@ -416,12 +416,12 @@ describe("BasePool - MultiRewardsV2", function () {
             expect(account4RewardBalance).to.eq(expectedAccount2Rewards.sub(account4EscrowedRewards).sub(1));
         });
 
-        it("Zero escrow", async() => {
+        it("Zero escrow", async () => {
             const testBasePoolFactory = new TestMultiRewardsBasePoolV2__factory(deployer);
 
             const DISTRIBUTION_AMOUNT_REWARD_TOKEN_1 = parseEther("1");
             const MINT_AMOUNT = parseEther("10");
-            
+
             const tempBasePool = (await testBasePoolFactory.deploy(
                 TOKEN_NAME,
                 TOKEN_SYMBOL,
@@ -438,7 +438,7 @@ describe("BasePool - MultiRewardsV2", function () {
             await tempBasePool.mint(account1.address, MINT_AMOUNT);
             await tempBasePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_1);
             await tempBasePool.claimAll(account3.address);
-            
+
             const account3RewardTokenBalance = await rewardToken1.balanceOf(account3.address);
             const account3EscrowedRewards = await escrowPool1.getTotalDeposit(account3.address);
 
@@ -446,12 +446,12 @@ describe("BasePool - MultiRewardsV2", function () {
             expect(account3EscrowedRewards).to.eq(0);
         });
 
-        it("Full escrow", async() => { 
+        it("Full escrow", async () => {
             const testBasePoolFactory = new TestMultiRewardsBasePoolV2__factory(deployer);
 
             const DISTRIBUTION_AMOUNT_REWARD_TOKEN_1 = parseEther("1");
             const MINT_AMOUNT = parseEther("10");
-            
+
             const tempBasePool = (await testBasePoolFactory.deploy(
                 TOKEN_NAME,
                 TOKEN_SYMBOL,
@@ -468,7 +468,7 @@ describe("BasePool - MultiRewardsV2", function () {
             await tempBasePool.mint(account1.address, MINT_AMOUNT);
             await tempBasePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_1);
             await tempBasePool.claimAll(account3.address);
-            
+
             const account3RewardTokenBalance = await rewardToken1.balanceOf(account3.address);
             const account3EscrowedRewards = await escrowPool1.getTotalDeposit(account3.address);
 
@@ -477,7 +477,7 @@ describe("BasePool - MultiRewardsV2", function () {
         });
     });
 
-    describe("claimRewards - multiple", async() => {
+    describe("claimRewards - multiple", async () => {
         const DISTRIBUTION_AMOUNT_REWARD_TOKEN_11 = parseEther("300");
         const DISTRIBUTION_AMOUNT_REWARD_TOKEN_12 = parseEther("1834.9");
         const DISTRIBUTION_AMOUNT_REWARD_TOKEN_13 = parseEther("838383.848448");
@@ -490,20 +490,20 @@ describe("BasePool - MultiRewardsV2", function () {
 
         let pointsMultiplier: BigNumber;
 
-        before(async() => {
+        before(async () => {
             pointsMultiplier = await basePool.POINTS_MULTIPLIER();
         });
 
-        beforeEach(async() => {
+        beforeEach(async () => {
             await rewardToken1.approve(basePool.address, constants.MaxUint256);
             await rewardToken2.approve(basePool.address, constants.MaxUint256);
         });
 
-        it("First claim single holder", async() => {
+        it("First claim single holder", async () => {
             await basePool.mint(account1.address, BASE_POOL_MINT_AMOUNT);
             await basePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_11);
             await basePool.distributeRewards(rewardToken2.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_21);
-            
+
             const account1RewardToken1BalanceBefore = await rewardToken1.balanceOf(account1.address);
             const account2RewardToken1BalanceBefore = await rewardToken1.balanceOf(account2.address);
             const account1RewardToken2BalanceBefore = await rewardToken2.balanceOf(account1.address);
@@ -541,7 +541,7 @@ describe("BasePool - MultiRewardsV2", function () {
 
         });
 
-        it("Claim multiple holders", async() => {
+        it("Claim multiple holders", async () => {
             await basePool.mint(account1.address, BASE_POOL_MINT_AMOUNT);
             await basePool.mint(account2.address, BASE_POOL_MINT_AMOUNT);
             await basePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_11);
@@ -557,7 +557,7 @@ describe("BasePool - MultiRewardsV2", function () {
             const account1WithdrawnRewards1After = await basePool.withdrawnRewardsOf(rewardToken1.address, account1.address);
             const account2WithdrawableRewardsAfter = await basePool.withdrawableRewardsOf(rewardToken1.address, account2.address);
             const account2WithdrawnRewardsAfter = await basePool.withdrawnRewardsOf(rewardToken1.address, account2.address);
-            
+
             const rewardPerAccount = DISTRIBUTION_AMOUNT_REWARD_TOKEN_11.div("2");
             const expectedEscrowed = rewardPerAccount.mul(ESCROW_PORTION).div(constants.WeiPerEther); // subtract 1
 
@@ -571,7 +571,7 @@ describe("BasePool - MultiRewardsV2", function () {
             expect(account2WithdrawnRewardsAfter).to.eq(rewardPerAccount.sub(1));
         });
 
-        it("Multiple claims, distribution and holders", async() => {
+        it("Multiple claims, distribution and holders", async () => {
             await basePool.mint(account1.address, BASE_POOL_MINT_AMOUNT);
             await basePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_11);
             await basePool.distributeRewards(rewardToken2.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_21);
@@ -598,7 +598,7 @@ describe("BasePool - MultiRewardsV2", function () {
             const account2WithdrawnRewardToken2 = await basePool.withdrawnRewardsOf(rewardToken2.address, account2.address);
             const account1WithdrawableRewardToken2 = await basePool.withdrawableRewardsOf(rewardToken2.address, account1.address);
             const account2WithdrawableRewardToken2 = await basePool.withdrawableRewardsOf(rewardToken2.address, account2.address);
-            
+
             const account3EscrowedRewardToken1 = await escrowPool1.getTotalDeposit(account3.address);
             const account4EscrowedRewardToken1 = await escrowPool1.getTotalDeposit(account4.address);
             const account3RewardToken1Balance = await rewardToken1.balanceOf(account3.address);
@@ -643,14 +643,14 @@ describe("BasePool - MultiRewardsV2", function () {
             expect(account4RewardToken2Balance).to.eq(expectedAccount2RewardToken2.sub(account4EscrowedRewardToken2).sub(1));
         });
 
-        it("Zero escrow", async() => {
+        it("Zero escrow", async () => {
             const testBasePoolFactory = new TestMultiRewardsBasePoolV2__factory(deployer);
 
             const DISTRIBUTION_AMOUNT_REWARD_TOKEN_1 = parseEther("1");
             const DISTRIBUTION_AMOUNT_REWARD_TOKEN_2 = parseEther("3");
 
             const MINT_AMOUNT = parseEther("10");
-            
+
             const tempBasePool = (await testBasePoolFactory.deploy(
                 TOKEN_NAME,
                 TOKEN_SYMBOL,
@@ -683,14 +683,14 @@ describe("BasePool - MultiRewardsV2", function () {
             expect(account3EscrowedRewardToken2).to.eq(0);
         });
 
-        it("Full escrow", async() => {
+        it("Full escrow", async () => {
             const testBasePoolFactory = new TestMultiRewardsBasePoolV2__factory(deployer);
 
             const DISTRIBUTION_AMOUNT_REWARD_TOKEN_1 = parseEther("1");
             const DISTRIBUTION_AMOUNT_REWARD_TOKEN_2 = parseEther("3");
 
             const MINT_AMOUNT = parseEther("10");
-            
+
             const tempBasePool = (await testBasePoolFactory.deploy(
                 TOKEN_NAME,
                 TOKEN_SYMBOL,
@@ -709,7 +709,7 @@ describe("BasePool - MultiRewardsV2", function () {
             await tempBasePool.distributeRewards(rewardToken2.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_2);
 
             await tempBasePool.claimAll(account3.address);
-            
+
             const account3RewardToken1Balance = await rewardToken1.balanceOf(account3.address);
             const account3EscrowedRewardToken1 = await escrowPool1.getTotalDeposit(account3.address);
             const account3RewardToken2Balance = await rewardToken2.balanceOf(account3.address);
@@ -721,14 +721,14 @@ describe("BasePool - MultiRewardsV2", function () {
             expect(account3EscrowedRewardToken2).to.eq(DISTRIBUTION_AMOUNT_REWARD_TOKEN_2.sub(1));
         });
 
-        it("Update escrow portion", async() => {
+        it("Update escrow portion", async () => {
             const testBasePoolFactory = new TestMultiRewardsBasePoolV2__factory(deployer);
 
             const DISTRIBUTION_AMOUNT_REWARD_TOKEN_1 = parseEther("1");
             const DISTRIBUTION_AMOUNT_REWARD_TOKEN_2 = parseEther("3");
 
             const MINT_AMOUNT = parseEther("10");
-            
+
             const tempBasePool = (await testBasePoolFactory.deploy(
                 TOKEN_NAME,
                 TOKEN_SYMBOL,
@@ -747,7 +747,7 @@ describe("BasePool - MultiRewardsV2", function () {
             await tempBasePool.distributeRewards(rewardToken2.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_2);
 
             await tempBasePool.claimAll(account3.address);
-            
+
             const account3RewardToken1Balance = await rewardToken1.balanceOf(account3.address);
             const account3EscrowedRewardToken1 = await escrowPool1.getTotalDeposit(account3.address);
             const account3RewardToken2Balance = await rewardToken2.balanceOf(account3.address);
@@ -760,15 +760,15 @@ describe("BasePool - MultiRewardsV2", function () {
 
 
 
-            await tempBasePool.connect(deployer).updateEscrowPortions(rewardToken1.address,"500000000000000000");    
-            await tempBasePool.connect(deployer).updateEscrowPortions(rewardToken2.address,"500000000000000000");    
+            await tempBasePool.connect(deployer).updateEscrowPortion(rewardToken1.address, "500000000000000000");
+            await tempBasePool.connect(deployer).updateEscrowPortion(rewardToken2.address, "500000000000000000");
 
             await tempBasePool.mint(account1.address, MINT_AMOUNT);
             await tempBasePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_1);
             await tempBasePool.distributeRewards(rewardToken2.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_2);
 
             await tempBasePool.claimAll(account3.address);
-            
+
             const account3RewardToken1Balance2 = await rewardToken1.balanceOf(account3.address);
             const account3EscrowedRewardToken12 = await escrowPool1.getTotalDeposit(account3.address);
             const account3RewardToken2Balance2 = await rewardToken2.balanceOf(account3.address);
@@ -781,14 +781,14 @@ describe("BasePool - MultiRewardsV2", function () {
 
         });
 
-        it("Update escrow duration", async() => {
+        it("Update escrow duration", async () => {
             const testBasePoolFactory = new TestMultiRewardsBasePoolV2__factory(deployer);
 
             const DISTRIBUTION_AMOUNT_REWARD_TOKEN_1 = parseEther("1");
             const DISTRIBUTION_AMOUNT_REWARD_TOKEN_2 = parseEther("3");
 
             const MINT_AMOUNT = parseEther("10");
-            
+
             const tempBasePool = (await testBasePoolFactory.deploy(
                 TOKEN_NAME,
                 TOKEN_SYMBOL,
@@ -806,10 +806,10 @@ describe("BasePool - MultiRewardsV2", function () {
             await tempBasePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_1);
             await tempBasePool.distributeRewards(rewardToken2.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_2);
 
-            
+
             await tempBasePool.claimAll(account3.address);
             const blockTimestamp1 = (await hre.ethers.provider.getBlock("latest")).timestamp;
-            
+
             const account3RewardToken1Balance = await rewardToken1.balanceOf(account3.address);
             const account3EscrowedRewardToken1 = await escrowPool1.getTotalDeposit(account3.address);
             const account3RewardToken2Balance = await rewardToken2.balanceOf(account3.address);
@@ -822,14 +822,14 @@ describe("BasePool - MultiRewardsV2", function () {
 
 
 
-            await tempBasePool.connect(deployer).updateEscrowDuration(rewardToken1.address,0);    
-            await tempBasePool.connect(deployer).updateEscrowDuration(rewardToken2.address,0);    
+            await tempBasePool.connect(deployer).updateEscrowDuration(rewardToken1.address, 0);
+            await tempBasePool.connect(deployer).updateEscrowDuration(rewardToken2.address, 0);
 
             await tempBasePool.mint(account1.address, MINT_AMOUNT);
             await tempBasePool.distributeRewards(rewardToken1.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_1);
             await tempBasePool.distributeRewards(rewardToken2.address, DISTRIBUTION_AMOUNT_REWARD_TOKEN_2);
 
-            
+
             await tempBasePool.claimAll(account3.address);
             const blockTimestamp2 = (await hre.ethers.provider.getBlock("latest")).timestamp;
 
@@ -841,7 +841,7 @@ describe("BasePool - MultiRewardsV2", function () {
 
             expect(deposits[1].amount).to.gte(DISTRIBUTION_AMOUNT_REWARD_TOKEN_1.sub(1)).and.lte(DISTRIBUTION_AMOUNT_REWARD_TOKEN_1.add(1));
             expect(deposits[1].start).to.eq(blockTimestamp2);
-            expect(deposits[1].end).to.eq(BigNumber.from(blockTimestamp2).add(10*60));
+            expect(deposits[1].end).to.eq(BigNumber.from(blockTimestamp2).add(10 * 60));
 
         });
     });

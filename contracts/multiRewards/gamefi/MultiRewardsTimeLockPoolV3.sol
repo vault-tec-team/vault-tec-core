@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "contracts/multiRewards/gamefi/base/MultiRewardsBasePoolV3.sol";
 import "contracts/interfaces/ITimeLockPool.sol";
+import "contracts/interfaces/IBadgeManager.sol";
 
 contract MultiRewardsTimeLockPoolV3 is MultiRewardsBasePoolV3, ITimeLockPool {
     using Math for uint256;
@@ -17,20 +18,12 @@ contract MultiRewardsTimeLockPoolV3 is MultiRewardsBasePoolV3, ITimeLockPool {
     uint256 public immutable maxLockDuration;
     uint256 public constant MIN_LOCK_DURATION_FOR_SAFETY = 10 minutes;
     uint256 public gracePeriod = 7 days;
-    uint256 public kickRewardIncentive = 100;
+    uint256 public kickRewardIncentive = 0;
     uint256 public constant DENOMINATOR = 10000;
 
+    IBadgeManager public badgeManager;
+
     mapping(address => Deposit[]) public depositsOf;
-
-    mapping(address => mapping(uint256 => uint256)) public badgesBoostedMapping; // badge address => id => boosted number (should divided by 1e18)
-    mapping(address => mapping(uint256 => bool)) public inBadgesList; // badge address => id => bool
-
-    BadgeData[] public badgesList;
-
-    mapping(address => Delegate[]) public delegatesOf;
-    mapping(address => mapping(address => mapping(uint256 => bool))) public delegatedList;
-
-    mapping(address => bool) public ineligibleList;
 
     bool public migrationIsOn;
 
@@ -39,20 +32,6 @@ contract MultiRewardsTimeLockPoolV3 is MultiRewardsBasePoolV3, ITimeLockPool {
     event MigrationTurnOff(address by);
     event GracePeriodUpdated(uint256 _gracePeriod);
     event KickRewardIncentiveUpdated(uint256 _kickRewardIncentive);
-    event BadgeAdded(address indexed _badgeAddress, uint256 _id, uint256 _boostedNumber);
-    event BadgeUpdated(address indexed _badgeAddress, uint256 _id, uint256 _boostedNumber);
-    event IneligibleListAdded(address indexed _address);
-    event IneligibleListRemoved(address indexed _address);
-
-    struct BadgeData {
-        address contractAddress;
-        uint256 tokenId;
-    }
-
-    struct Delegate {
-        address owner;
-        BadgeData badge;
-    }
 
     struct Deposit {
         uint256 amount;
@@ -71,7 +50,8 @@ contract MultiRewardsTimeLockPoolV3 is MultiRewardsBasePoolV3, ITimeLockPool {
         uint256[] memory _escrowDurations,
         uint256 _maxBonus,
         uint256 _minLockDuration,
-        uint256 _maxLockDuration
+        uint256 _maxLockDuration,
+        address _badgeManager
     )
         MultiRewardsBasePoolV3(
             _name,
@@ -91,11 +71,17 @@ contract MultiRewardsTimeLockPoolV3 is MultiRewardsBasePoolV3, ITimeLockPool {
             _maxLockDuration >= _minLockDuration,
             "MultiRewardsTimeLockPoolV3.constructor: max lock duration must be greater or equal to mininmum lock duration"
         );
+        require(
+            _badgeManager != address(0),
+            "MultiRewardsTimeLockPoolV3.constructor: badge manager cannot be zero address"
+        );
+
         maxBonus = _maxBonus;
         minLockDuration = _minLockDuration;
         maxLockDuration = _maxLockDuration;
 
         migrationIsOn = true;
+        badgeManager = IBadgeManager(_badgeManager);
     }
 
     function deposit(
@@ -145,7 +131,7 @@ contract MultiRewardsTimeLockPoolV3 is MultiRewardsBasePoolV3, ITimeLockPool {
         }
 
         uint256 mintAmount = (_amount * getMultiplier(duration)) / 1e18;
-        uint256 badgeBoostingAmount = (_amount * getBadgeMultiplier(_receiver)) / 1e18;
+        uint256 badgeBoostingAmount = (_amount * badgeManager.getBadgeMultiplier(_receiver)) / 1e18;
         uint256 shareAmount = mintAmount + badgeBoostingAmount;
 
         depositsOf[_receiver].push(
@@ -200,10 +186,6 @@ contract MultiRewardsTimeLockPoolV3 is MultiRewardsBasePoolV3, ITimeLockPool {
             _account != address(0),
             "MultiRewardsTimeLockPoolV3._processExpiredDeposit: account cannot be zero address"
         );
-        require(
-            _depositId < depositsOf[_account].length,
-            "MultiRewardsTimeLockPoolV3._processExpiredDeposit: deposit does not exist"
-        );
         Deposit memory userDeposit = depositsOf[_account][_depositId];
 
         require(block.timestamp >= userDeposit.end, "MultiRewardsTimeLockPoolV3._processExpiredDeposit: too soon");
@@ -238,46 +220,6 @@ contract MultiRewardsTimeLockPoolV3 is MultiRewardsBasePoolV3, ITimeLockPool {
         return 1e18 + ((maxBonus * _lockDuration) / maxLockDuration);
     }
 
-    function getBadgeMultiplier(address _depositorAddress) private view returns (uint256) {
-        uint256 badgeMultiplier = 0;
-
-        if (ineligibleList[_depositorAddress]) {
-            return badgeMultiplier;
-        }
-
-        for (uint256 index = 0; index < delegatesOf[_depositorAddress].length; index++) {
-            Delegate memory delegateBadge = delegatesOf[_depositorAddress][index];
-            BadgeData memory badge = delegateBadge.badge;
-            if (IERC1155(badge.contractAddress).balanceOf(delegateBadge.owner, badge.tokenId) > 0) {
-                badgeMultiplier = badgeMultiplier + (badgesBoostedMapping[badge.contractAddress][badge.tokenId]);
-            }
-        }
-
-        return badgeMultiplier;
-    }
-
-    function delegateBadgeTo(
-        address _badgeContract,
-        uint256 _tokenId,
-        address _delegator
-    ) external {
-        require(
-            !delegatedList[msg.sender][_badgeContract][_tokenId],
-            "MultiRewardsTimeLockPoolV3.delegateBadgeTo: already delegated"
-        );
-
-        require(
-            IERC1155(_badgeContract).balanceOf(msg.sender, _tokenId) > 0,
-            "MultiRewardsTimeLockPoolV3.delegateBadgeTo: You do not own the badge"
-        );
-
-        delegatesOf[_delegator].push(
-            Delegate({ owner: msg.sender, badge: BadgeData({ contractAddress: _badgeContract, tokenId: _tokenId }) })
-        );
-
-        delegatedList[msg.sender][_badgeContract][_tokenId] = true;
-    }
-
     function getTotalDeposit(address _account) public view returns (uint256) {
         uint256 total;
         for (uint256 i = 0; i < depositsOf[_account].length; i++) {
@@ -293,14 +235,6 @@ contract MultiRewardsTimeLockPoolV3 is MultiRewardsBasePoolV3, ITimeLockPool {
 
     function getDepositsOfLength(address _account) public view returns (uint256) {
         return depositsOf[_account].length;
-    }
-
-    function getDelegatesOf(address _account) public view returns (Delegate[] memory) {
-        return delegatesOf[_account];
-    }
-
-    function getDelegatesOfLength(address _account) public view returns (uint256) {
-        return delegatesOf[_account].length;
     }
 
     //==================== ADMIN ONLY FUNCTIONS ====================
@@ -355,7 +289,7 @@ contract MultiRewardsTimeLockPoolV3 is MultiRewardsBasePoolV3, ITimeLockPool {
 
         uint256 duration = _end - _start;
         uint256 mintAmount = (_amount * getMultiplier(duration)) / 1e18;
-        uint256 badgeBoostingAmount = (_amount * getBadgeMultiplier(_receiver)) / 1e18;
+        uint256 badgeBoostingAmount = (_amount * badgeManager.getBadgeMultiplier(_receiver)) / 1e18;
         uint256 shareAmount = mintAmount + badgeBoostingAmount;
 
         depositsOf[_receiver].push(Deposit({ amount: _amount, start: _start, end: _end, shareAmount: shareAmount }));
@@ -382,53 +316,5 @@ contract MultiRewardsTimeLockPoolV3 is MultiRewardsBasePoolV3, ITimeLockPool {
         );
         kickRewardIncentive = _kickRewardIncentive;
         emit KickRewardIncentiveUpdated(_kickRewardIncentive);
-    }
-
-    function addBadge(
-        address _badgeAddress,
-        uint256 _id,
-        uint256 _boostedNumber
-    ) external onlyAdmin {
-        require(
-            !inBadgesList[_badgeAddress][_id],
-            "MultiRewardsTimeLockPoolV3.addBadge: already in badgelist, please try to update"
-        );
-
-        inBadgesList[_badgeAddress][_id] = true;
-        badgesList.push(BadgeData({ contractAddress: _badgeAddress, tokenId: _id }));
-        badgesBoostedMapping[_badgeAddress][_id] = _boostedNumber;
-        emit BadgeAdded(_badgeAddress, _id, _boostedNumber);
-    }
-
-    function updateBadge(
-        address _badgeAddress,
-        uint256 _id,
-        uint256 _boostedNumber
-    ) external onlyAdmin {
-        require(
-            inBadgesList[_badgeAddress][_id],
-            "MultiRewardsTimeLockPoolV3.updateBadge: badgeAddress not in badgeList, please try to add first"
-        );
-
-        badgesBoostedMapping[_badgeAddress][_id] = _boostedNumber;
-        emit BadgeUpdated(_badgeAddress, _id, _boostedNumber);
-    }
-
-    function addIneligibleList(address _address) external onlyAdmin {
-        require(
-            !ineligibleList[_address],
-            "MultiRewardsTimeLockPoolV3.addIneligibleList: address already in ineligiblelist, please try to update"
-        );
-        ineligibleList[_address] = true;
-        emit IneligibleListAdded(_address);
-    }
-
-    function removeIneligibleList(address _address) external onlyAdmin {
-        require(
-            ineligibleList[_address],
-            "MultiRewardsTimeLockPoolV3.removeIneligibleList: address not in ineligiblelist, please try to add first"
-        );
-        ineligibleList[_address] = false;
-        emit IneligibleListRemoved(_address);
     }
 }

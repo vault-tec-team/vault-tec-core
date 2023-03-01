@@ -11,7 +11,9 @@ import {
     MultiRewardsTimeLockNonTransferablePoolV3,
     MultiRewardsTimeLockNonTransferablePoolV3__factory, 
     TimeLockNonTransferablePool,
-    TimeLockNonTransferablePool__factory } from "../../typechain";
+    TimeLockNonTransferablePool__factory,
+    BadgeManager,
+    BadgeManager__factory } from "../../typechain";
 import TimeTraveler from "../../utils/TimeTraveler";
 
 const POOL_COUNT = 2;
@@ -55,6 +57,8 @@ describe("MultiRewards", function () {
     let liquidityMiningManager1: MultiRewardsLiquidityMiningManagerV3;
     let liquidityMiningManager2: MultiRewardsLiquidityMiningManagerV3;
 
+    let badgeManager: BadgeManager;
+
     let timeTraveler = new TimeTraveler(hre.network.provider);
 
     before(async() => {
@@ -76,6 +80,7 @@ describe("MultiRewards", function () {
         rewardToken2 = await testTokenFactory.deploy("Reward Token 2", "RWRD2");
 
         const escrowPoolFactory = new TimeLockNonTransferablePool__factory(deployer);
+        const badgeManagerFactory = new BadgeManager__factory(deployer);
 
         escrowPool1 = await escrowPoolFactory.deploy(
             "EscrowPool1",
@@ -116,6 +121,7 @@ describe("MultiRewards", function () {
         await depositToken.mint(account2.address, INITIAL_MINT);
 
         const poolFactory = new MultiRewardsTimeLockNonTransferablePoolV3__factory(deployer);
+        badgeManager = await badgeManagerFactory.deploy();
 
         for(let i = 0; i < POOL_COUNT; i ++) {
             pools.push(
@@ -129,7 +135,8 @@ describe("MultiRewards", function () {
                     [ESCROW_DURATION_1, ESCROW_DURATION_2],
                     0,
                     600,
-                    ESCROW_DURATION_2
+                    ESCROW_DURATION_2,
+                    badgeManager.address
                 )
             );
             await depositToken.connect(account1).approve(pools[i].address, INITIAL_MINT);
