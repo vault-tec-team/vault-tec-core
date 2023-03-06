@@ -44,8 +44,16 @@ contract ERC721Staking is ReentrancyGuard, ERC721Saver {
     }
 
     function stake(uint256 _tokenId, uint256 _duration) external nonReentrant {
+        _stake(msg.sender, _tokenId, _duration);
+    }
+
+    function _stake(
+        address _staker,
+        uint256 _tokenId,
+        uint256 _duration
+    ) internal {
         // Wallet must own the token they are trying to stake
-        require(nft.ownerOf(_tokenId) == msg.sender, "ERC721Staking.stake: You don't own this token!");
+        require(nft.ownerOf(_tokenId) == _staker, "ERC721Staking.stake: You don't own this token!");
 
         require(block.timestamp + _duration <= type(uint64).max, "ERC721Staking.stake: duration too long");
         // Don't allow locking > maxLockDuration
@@ -54,10 +62,10 @@ contract ERC721Staking is ReentrancyGuard, ERC721Saver {
         duration = duration.max(minLockDuration);
 
         // Transfer the token from the wallet to the Smart contract
-        nft.transferFrom(msg.sender, address(this), _tokenId);
+        nft.transferFrom(_staker, address(this), _tokenId);
 
         stakedNFT.safeMint(
-            msg.sender,
+            _staker,
             _tokenId,
             IStakedERC721.StakedInfo({
                 start: uint64(block.timestamp),
@@ -66,7 +74,7 @@ contract ERC721Staking is ReentrancyGuard, ERC721Saver {
             })
         );
 
-        emit NFTStaked(msg.sender, _tokenId, _duration);
+        emit NFTStaked(_staker, _tokenId, _duration);
     }
 
     function unstake(uint256 _tokenId) external nonReentrant {
@@ -75,5 +83,18 @@ contract ERC721Staking is ReentrancyGuard, ERC721Saver {
         stakedNFT.burn(_tokenId);
 
         emit NFTUnstaked(msg.sender, _tokenId);
+    }
+
+    function batchStake(uint256[] memory _tokenIds, uint256[] memory _durations) external nonReentrant {
+        require(
+            _tokenIds.length == _durations.length,
+            "ERC721Staking.batchStake: tokenIds and durations length mismatch"
+        );
+
+        for (uint256 i = 0; i < _tokenIds.length; i++) {
+            uint256 tokenId = _tokenIds[i];
+            uint256 duration = _durations[i];
+            _stake(msg.sender, tokenId, duration);
+        }
     }
 }

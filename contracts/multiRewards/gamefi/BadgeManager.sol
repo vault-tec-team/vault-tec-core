@@ -12,7 +12,7 @@ contract BadgeManager is AccessControlEnumerable {
     BadgeData[] public badgesList;
 
     mapping(address => Delegate[]) public delegatesOf;
-    mapping(address => mapping(address => mapping(uint256 => bool))) public delegatedList;
+    mapping(address => mapping(uint256 => address)) public delegatedList;
 
     mapping(address => bool) public ineligibleList;
 
@@ -68,7 +68,7 @@ contract BadgeManager is AccessControlEnumerable {
     ) external {
         require(inBadgesList[_badgeContract][_tokenId], "BadgeManager.delegateBadgeTo: invalid badge");
         require(
-            !delegatedList[msg.sender][_badgeContract][_tokenId],
+            delegatedList[_badgeContract][_tokenId] == address(0),
             "BadgeManager.delegateBadgeTo: already delegated"
         );
 
@@ -81,7 +81,7 @@ contract BadgeManager is AccessControlEnumerable {
             Delegate({ owner: msg.sender, badge: BadgeData({ contractAddress: _badgeContract, tokenId: _tokenId }) })
         );
 
-        delegatedList[msg.sender][_badgeContract][_tokenId] = true;
+        delegatedList[_badgeContract][_tokenId] = _delegator;
     }
 
     function addBadge(
@@ -135,5 +135,23 @@ contract BadgeManager is AccessControlEnumerable {
 
     function getDelegatesOfLength(address _account) public view returns (uint256) {
         return delegatesOf[_account].length;
+    }
+
+    function getDelegatedList(address _badgeContract, uint256 _tokenId) public view returns (address) {
+        return delegatedList[_badgeContract][_tokenId];
+    }
+
+    function getDelegatedLists(address[] memory _badgeContracts, uint256[] memory _tokenIds)
+        public
+        view
+        returns (address[] memory)
+    {
+        require(_badgeContracts.length == _tokenIds.length, "BadgeManager.getDelegatedLists: arrays length mismatch");
+
+        address[] memory delegatedAddresses = new address[](_badgeContracts.length);
+        for (uint256 i = 0; i < _badgeContracts.length; i++) {
+            delegatedAddresses[i] = delegatedList[_badgeContracts[i]][_tokenIds[i]];
+        }
+        return delegatedAddresses;
     }
 }

@@ -29,7 +29,7 @@ describe("StakedERC721", function () {
         ] = await hre.ethers.getSigners();
 
         const stakedERC721Factory = await new StakedERC721__factory(deployer);
-        stakedNFT = await stakedERC721Factory.deploy("TestNFT", "TNFT");
+        stakedNFT = await stakedERC721Factory.deploy("TestNFT", "TNFT","https://test.com/");
 
         await timeTraveler.snapshot();
     });
@@ -38,11 +38,40 @@ describe("StakedERC721", function () {
         await timeTraveler.revertSnapshot();
     });
 
+    describe("setBaseURI", async () => {
+        const TokenID = 10;
+        const stakedInfo = {
+            start: Math.floor(Date.now() / 1000),
+            duration: 600,
+            end: Math.floor(Date.now() / 1000) + 600
+        }
+        beforeEach(async () => {
+            const minterRole = await stakedNFT.MINTER_ROLE();
+            await stakedNFT.grantRole(minterRole, account1.address);  
+            await stakedNFT.connect(account1).safeMint(account2.address, TokenID, stakedInfo);
+        })
+        
+        it("should set the base URI for the contract", async () => {
+            
+            const newBaseURI = "https://test2.com/";
+            await stakedNFT.connect(deployer).setBaseURI(newBaseURI);
+            expect(await stakedNFT.tokenURI(TokenID)).to.eq(newBaseURI+TokenID);
+        });
+    
+        it("should revert if called by a non-admin", async () => {
+            const TokenID = 10;
+            const oldBaseURI = "https://test.com/";
+            const newBaseURI = "https://test2.com/";
+            await expect(stakedNFT.connect(account2).setBaseURI(newBaseURI)).to.be.revertedWith("StakedERC721.onlyAdmin: permission denied");
+            expect(await stakedNFT.tokenURI(TokenID)).to.eq(oldBaseURI+TokenID);
+        });
+    });
+
     describe("Transferrable", async() => {
 
         it("Default not transferrable", async() => {
             const stakedERC721Factory = await new StakedERC721__factory(deployer);
-            const newStakedNFT = await stakedERC721Factory.deploy("NewTestNFT", "NTNFT");
+            const newStakedNFT = await stakedERC721Factory.deploy("NewTestNFT", "NTNFT","https://test.com/");
             expect(await newStakedNFT.connect(account1).transferrable()).to.eq(false);
         });
 
@@ -85,6 +114,18 @@ describe("StakedERC721", function () {
 
         it("User without minter role cannot mint", async() => {
             await expect(stakedNFT.connect(account1).safeMint(account1.address, TOKEN_ID, stakedInfo)).to.be.revertedWith("StakedERC721.onlyMinter: permission denied");
+        });
+
+        it("should return the correct tokenURI for a staked ERC721 token", async () => {
+
+            const minterRole = await stakedNFT.MINTER_ROLE();
+            await stakedNFT.grantRole(minterRole, account1.address);  
+            await stakedNFT.connect(account1).safeMint(account2.address, TOKEN_ID, stakedInfo);
+            
+            const tokenURI = `https://test.com/${TOKEN_ID}`;
+        
+            const returnedTokenURI = await stakedNFT.tokenURI(TOKEN_ID);
+            expect(returnedTokenURI).to.eq(tokenURI);
         });
 
         context("Incorrect staked info", () => {

@@ -13,10 +13,11 @@ contract StakedERC721 is IStakedERC721, ERC721Enumerable, AccessControlEnumerabl
     mapping(uint256 => StakedInfo) private _stakedInfos;
 
     bool private _transferrable;
+    string private _baseTokenURI;
 
     event TransferrableUpdated(address updatedBy, bool transferrable);
 
-    constructor(string memory name, string memory symbol) 
+    constructor(string memory name, string memory symbol, string memory baseTokenURI) 
         ERC721(
             string(abi.encodePacked("Staked", " ", name)), 
             string(abi.encodePacked("S", symbol))
@@ -24,6 +25,7 @@ contract StakedERC721 is IStakedERC721, ERC721Enumerable, AccessControlEnumerabl
     {
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(ADMIN_ROLE, msg.sender);
+        _baseTokenURI = baseTokenURI;
         _transferrable = false; //default non-transferrable
     }
 
@@ -95,6 +97,14 @@ contract StakedERC721 is IStakedERC721, ERC721Enumerable, AccessControlEnumerabl
     {
         require(transferrable(), "StakedERC721._transfer: not transferrable");
         super._transfer(from, to, tokenId);
+    }
+
+    function setBaseURI(string memory baseTokenURI) external onlyAdmin {
+        _baseTokenURI = baseTokenURI;
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return _baseTokenURI;
     }
 
     // The following functions are overrides required by Solidity.

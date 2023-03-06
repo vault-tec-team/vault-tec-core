@@ -1014,6 +1014,7 @@ describe("TimeLockPool - MultiRewards", function () {
             const sTokenBalanceBefore = await timeLockPool.balanceOf(account1.address);
 
             await badgeManager.connect(account1).delegateBadgeTo(badgeToken1.address, 1, account1.address);
+            expect(await badgeManager.connect(account1).getDelegatedList(badgeToken1.address, 1)).to.eq(account1.address);
 
             await timeLockPool.connect(account1).deposit(DEPOSIT_AMOUNT, MAX_LOCK_DURATION, account1.address);
 
@@ -1053,6 +1054,8 @@ describe("TimeLockPool - MultiRewards", function () {
             const sTokenBalanceBefore_account2 = await timeLockPool.balanceOf(account2.address);
 
             await badgeManager.connect(account1).delegateBadgeTo(badgeToken1.address, 1, account2.address);
+            expect(await badgeManager.connect(account1).getDelegatedList(badgeToken1.address, 1)).to.eq(account2.address);
+
             await timeLockPool.connect(account1).deposit(DEPOSIT_AMOUNT, MAX_LOCK_DURATION, account1.address);
             await timeLockPool.connect(account2).deposit(DEPOSIT_AMOUNT, MAX_LOCK_DURATION, account2.address);
 
@@ -1073,7 +1076,15 @@ describe("TimeLockPool - MultiRewards", function () {
             const sTokenBalanceBefore = await timeLockPool.balanceOf(account1.address);
 
             await badgeManager.connect(account1).delegateBadgeTo(badgeToken1.address, 1, account1.address);
+            expect(await badgeManager.connect(account1).getDelegatedList(badgeToken1.address, 1)).to.eq(account1.address);
+
             await badgeManager.connect(account1).delegateBadgeTo(badgeToken2.address, 1, account1.address);
+            expect(await badgeManager.connect(account1).getDelegatedList(badgeToken2.address, 1)).to.eq(account1.address);
+
+            const delegatedLists = await badgeManager.connect(account1).getDelegatedLists([badgeToken1.address, badgeToken2.address], [1, 1]);
+            expect(delegatedLists[0]).to.eq(account1.address);
+            expect(delegatedLists[1]).to.eq(account1.address);
+
 
             await timeLockPool.connect(account1).deposit(DEPOSIT_AMOUNT, MAX_LOCK_DURATION, account1.address);
 

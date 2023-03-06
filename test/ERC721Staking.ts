@@ -38,7 +38,7 @@ describe("ERC721Staking", function () {
         const stakedERC721Factory = await new StakedERC721__factory(deployer);
 
         originalNFT = await testERC721Factory.deploy("TestNFT", "TNFT");
-        stakedNFT = await stakedERC721Factory.deploy("TestStakedNFT", "TSNFT");
+        stakedNFT = await stakedERC721Factory.deploy("TestStakedNFT", "TSNFT","https://test.com/");
 
         const erc721StakingFactory = new ERC721Staking__factory(deployer);
 
@@ -64,6 +64,8 @@ describe("ERC721Staking", function () {
     describe("Stake", async () => {
 
         const STAKE_TOKEN_ID = parseEther("10");
+        const STAKE_TOKEN_ID2 = parseEther("11");
+        const STAKE_TOKEN_ID3 = parseEther("12");
 
         beforeEach(async () => {
             await originalNFT.connect(deployer).mint(account1.address, STAKE_TOKEN_ID);
@@ -145,7 +147,52 @@ describe("ERC721Staking", function () {
             await erc721Staking.connect(account1).stake(STAKE_TOKEN_ID, 0);
             await expect(stakedNFT.connect(account1).transferFrom(account1.address, account2.address, STAKE_TOKEN_ID)).to.be.revertedWith("StakedERC721._transfer: not transferrable");
         });
+
+        it("Batch deposit successfully should get StakedNFT with the same IDs", async () => {
+
+            await originalNFT.connect(deployer).mint(account1.address, STAKE_TOKEN_ID2);
+            await originalNFT.connect(deployer).mint(account1.address, STAKE_TOKEN_ID3);
+
+            const tokenIds = [STAKE_TOKEN_ID, STAKE_TOKEN_ID2, STAKE_TOKEN_ID3];
+            const durations = [86400 * 30, 86400 * 60, 86400 * 90];
+            expect(account1.address).to.eq(await originalNFT.ownerOf(tokenIds[0]));
+            expect(account1.address).to.eq(await originalNFT.ownerOf(tokenIds[1]));
+            expect(account1.address).to.eq(await originalNFT.ownerOf(tokenIds[2]));
+        
+            await expect(stakedNFT.ownerOf(tokenIds[0])).to.be.revertedWith("ERC721: owner query for nonexistent token");
+            await expect(stakedNFT.ownerOf(tokenIds[1])).to.be.revertedWith("ERC721: owner query for nonexistent token");
+            await expect(stakedNFT.ownerOf(tokenIds[2])).to.be.revertedWith("ERC721: owner query for nonexistent token");
+        
+            
+            await originalNFT.connect(account1).approve(erc721Staking.address, STAKE_TOKEN_ID);
+            await originalNFT.connect(account1).approve(erc721Staking.address, STAKE_TOKEN_ID2);
+            await originalNFT.connect(account1).approve(erc721Staking.address, STAKE_TOKEN_ID3);
+
+            
+            await erc721Staking.connect(account1).batchStake(tokenIds, durations);
+        
+            expect(erc721Staking.address).to.eq(await originalNFT.ownerOf(tokenIds[0]));
+            expect(account1.address).to.eq(await stakedNFT.ownerOf(tokenIds[0]));
+            expect(erc721Staking.address).to.eq(await originalNFT.ownerOf(tokenIds[1]));
+            expect(account1.address).to.eq(await stakedNFT.ownerOf(tokenIds[1]));
+            expect(erc721Staking.address).to.eq(await originalNFT.ownerOf(tokenIds[2]));
+            expect(account1.address).to.eq(await stakedNFT.ownerOf(tokenIds[2]));
+        
+            const stakedInfo1 = await stakedNFT.stakedInfoOf(tokenIds[0]);
+            expect(stakedInfo1.end.sub(stakedInfo1.start)).to.eq(durations[0]);
+            expect(stakedInfo1.duration).to.eq(durations[0]);
+        
+            const stakedInfo2 = await stakedNFT.stakedInfoOf(tokenIds[1]);
+            expect(stakedInfo2.end.sub(stakedInfo2.start)).to.eq(durations[1]);
+            expect(stakedInfo2.duration).to.eq(durations[1]);
+        
+            const stakedInfo3 = await stakedNFT.stakedInfoOf(tokenIds[2]);
+            expect(stakedInfo3.end.sub(stakedInfo3.start)).to.eq(durations[2]);
+            expect(stakedInfo3.duration).to.eq(durations[2]);
+        });
     });
+
+    
 
     describe("Unstake", async () => {
         const STAKE_TOKEN_ID = parseEther("10");
