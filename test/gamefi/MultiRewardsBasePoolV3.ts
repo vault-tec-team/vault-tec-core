@@ -907,6 +907,22 @@ describe("BasePool - MultiRewardsV3", function () {
 
                 await basePool.connect(account1).removeBlacklist(account4.address);
 
+                let afterRemove = await basePool.inBlacklist(account4.address);
+                let afterRemoveBalance = await basePool.balanceOf(account4.address);
+                let afterRemoveBlacklistAmount = await basePool.blacklistAmount(account4.address);
+                let afterRemoveAlterBalance = await basePool.adjustedBalanceOf(account4.address);
+                let afterRemoveTotalSupply = await basePool.totalSupply();
+                let afterRemoveAlterTotalSupply = await basePool.adjustedTotalSupply();
+
+                expect(afterRemove).to.eq(false);
+                expect(afterRemoveBalance).to.eq(ad4MintAmount);
+                expect(afterRemoveBlacklistAmount).to.eq(0);
+                expect(afterRemoveAlterBalance).to.eq(ad4MintAmount);
+                expect(afterRemoveTotalSupply).to.eq(ad4MintAmount + ad3MintAmount);
+                expect(afterRemoveAlterTotalSupply).to.eq(ad4MintAmount + ad3MintAmount);
+
+                await basePool.connect(account1).addBlacklist(account4.address);
+
                 let afterAdd2 = await basePool.inBlacklist(account4.address);
                 let afterAddBalance2 = await basePool.balanceOf(account4.address);
                 let afterAddBlacklistAmount2 = await basePool.blacklistAmount(account4.address);
@@ -914,12 +930,12 @@ describe("BasePool - MultiRewardsV3", function () {
                 let afterAddTotalSupply2 = await basePool.totalSupply();
                 let afterAddAlterTotalSupply2 = await basePool.adjustedTotalSupply();
 
-                expect(afterAdd2).to.eq(false);
+                expect(afterAdd2).to.eq(true);
                 expect(afterAddBalance2).to.eq(ad4MintAmount);
-                expect(afterAddBlacklistAmount2).to.eq(0);
-                expect(afterAddAlterBalance2).to.eq(ad4MintAmount);
+                expect(afterAddBlacklistAmount2).to.eq(ad4MintAmount);
+                expect(afterAddAlterBalance2).to.eq(0);
                 expect(afterAddTotalSupply2).to.eq(ad4MintAmount + ad3MintAmount);
-                expect(afterAddAlterTotalSupply2).to.eq(ad4MintAmount + ad3MintAmount);
+                expect(afterAddAlterTotalSupply2).to.eq(ad3MintAmount);
             })
         });
     })

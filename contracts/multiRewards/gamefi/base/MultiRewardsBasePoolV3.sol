@@ -34,6 +34,7 @@ abstract contract MultiRewardsBasePoolV3 is
     mapping(address => uint256) public escrowDurations; // escrow duration in seconds
 
     mapping(address => uint256) public blacklistAmount;
+    uint256 public totalBlacklistAmount;
     mapping(address => bool) public inBlacklist;
     address[] public blacklistAddresses;
 
@@ -119,6 +120,7 @@ abstract contract MultiRewardsBasePoolV3 is
             }
         } else {
             blacklistAmount[_account] += _amount;
+            totalBlacklistAmount += _amount;
         }
     }
 
@@ -131,6 +133,7 @@ abstract contract MultiRewardsBasePoolV3 is
             }
         } else {
             blacklistAmount[_account] -= _amount;
+            totalBlacklistAmount -= _amount;
         }
     }
 
@@ -283,6 +286,7 @@ abstract contract MultiRewardsBasePoolV3 is
         );
         inBlacklist[_address] = true;
         blacklistAmount[_address] = super.balanceOf(_address);
+        totalBlacklistAmount += super.balanceOf(_address);
         blacklistAddresses.push(_address);
 
         if (super.balanceOf(_address) > 0) {
@@ -307,15 +311,12 @@ abstract contract MultiRewardsBasePoolV3 is
             }
         }
 
+        totalBlacklistAmount -= blacklistAmount[_address];
         blacklistAmount[_address] = 0;
     }
 
     function adjustedTotalSupply() public view returns (uint256) {
-        uint256 blacklistSum = 0;
-        for (uint256 i = 0; i < blacklistAddresses.length; i++) {
-            blacklistSum = blacklistSum + blacklistAmount[blacklistAddresses[i]];
-        }
-        return super.totalSupply() - blacklistSum;
+        return super.totalSupply() - totalBlacklistAmount;
     }
 
     function adjustedBalanceOf(address user) public view returns (uint256) {
