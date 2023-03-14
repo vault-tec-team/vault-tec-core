@@ -36,7 +36,6 @@ abstract contract MultiRewardsBasePoolV3 is
     mapping(address => uint256) public blacklistAmount;
     uint256 public totalBlacklistAmount;
     mapping(address => bool) public inBlacklist;
-    address[] public blacklistAddresses;
 
     event RewardsClaimed(
         address indexed _reward,
@@ -137,11 +136,7 @@ abstract contract MultiRewardsBasePoolV3 is
         }
     }
 
-    function _transfer(
-        address _from,
-        address _to,
-        uint256 _value
-    ) internal virtual override {
+    function _transfer(address _from, address _to, uint256 _value) internal virtual override {
         require(
             !inBlacklist[_from],
             "MultiRewardsBasePoolV3._transfer: cannot transfer token to others if in blacklist"
@@ -287,7 +282,6 @@ abstract contract MultiRewardsBasePoolV3 is
         inBlacklist[_address] = true;
         blacklistAmount[_address] = super.balanceOf(_address);
         totalBlacklistAmount += super.balanceOf(_address);
-        blacklistAddresses.push(_address);
 
         if (super.balanceOf(_address) > 0) {
             for (uint256 i = 0; i < rewardTokens.length; i++) {
