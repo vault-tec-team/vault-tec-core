@@ -61,11 +61,7 @@ contract BadgeManager is AccessControlEnumerable {
         _;
     }
 
-    function delegateBadgeTo(
-        address _badgeContract,
-        uint256 _tokenId,
-        address _delegator
-    ) external {
+    function delegateBadgeTo(address _badgeContract, uint256 _tokenId, address _delegator) external {
         require(inBadgesList[_badgeContract][_tokenId], "BadgeManager.delegateBadgeTo: invalid badge");
         require(
             delegatedList[_badgeContract][_tokenId] == address(0),
@@ -84,12 +80,30 @@ contract BadgeManager is AccessControlEnumerable {
         delegatedList[_badgeContract][_tokenId] = _delegator;
     }
 
-    function addBadge(
-        address _badgeAddress,
-        uint256 _id,
-        uint256 _boostedNumber
+    function addBadge(address _badgeAddress, uint256 _id, uint256 _boostedNumber) external onlyAdmin {
+        _addBadge(_badgeAddress, _id, _boostedNumber);
+    }
+
+    function batchAddBadges(
+        address[] memory _badgeAddresses,
+        uint256[] memory _ids,
+        uint256[] memory _boostedNumbers
     ) external onlyAdmin {
-        require(!inBadgesList[_badgeAddress][_id], "BadgeManager.addBadge: already in badgelist, please try to update");
+        require(
+            _badgeAddresses.length == _ids.length && _ids.length == _boostedNumbers.length,
+            "BadgeManager.batchAddBadge: arrays length mismatch"
+        );
+
+        for (uint256 i = 0; i < _badgeAddresses.length; i++) {
+            _addBadge(_badgeAddresses[i], _ids[i], _boostedNumbers[i]);
+        }
+    }
+
+    function _addBadge(address _badgeAddress, uint256 _id, uint256 _boostedNumber) internal {
+        require(
+            !inBadgesList[_badgeAddress][_id],
+            "BadgeManager._addBadge: already in badgelist, please try to update"
+        );
 
         inBadgesList[_badgeAddress][_id] = true;
         badgesList.push(BadgeData({ contractAddress: _badgeAddress, tokenId: _id }));
@@ -97,14 +111,29 @@ contract BadgeManager is AccessControlEnumerable {
         emit BadgeAdded(_badgeAddress, _id, _boostedNumber);
     }
 
-    function updateBadge(
-        address _badgeAddress,
-        uint256 _id,
-        uint256 _boostedNumber
+    function updateBadge(address _badgeAddress, uint256 _id, uint256 _boostedNumber) external onlyAdmin {
+        _updateBadge(_badgeAddress, _id, _boostedNumber);
+    }
+
+    function batchUpdateBadges(
+        address[] memory _badgeAddresses,
+        uint256[] memory _ids,
+        uint256[] memory _boostedNumbers
     ) external onlyAdmin {
         require(
+            _badgeAddresses.length == _ids.length && _ids.length == _boostedNumbers.length,
+            "BadgeManager.batchUpdateBadges: arrays length mismatch"
+        );
+
+        for (uint256 i = 0; i < _badgeAddresses.length; i++) {
+            _updateBadge(_badgeAddresses[i], _ids[i], _boostedNumbers[i]);
+        }
+    }
+
+    function _updateBadge(address _badgeAddress, uint256 _id, uint256 _boostedNumber) internal {
+        require(
             inBadgesList[_badgeAddress][_id],
-            "BadgeManager.updateBadge: badgeAddress not in badgeList, please try to add first"
+            "BadgeManager._updateBadge: badgeAddress not in badgeList, please try to add first"
         );
 
         badgesBoostedMapping[_badgeAddress][_id] = _boostedNumber;
@@ -141,11 +170,10 @@ contract BadgeManager is AccessControlEnumerable {
         return delegatedList[_badgeContract][_tokenId];
     }
 
-    function getDelegatedLists(address[] memory _badgeContracts, uint256[] memory _tokenIds)
-        public
-        view
-        returns (address[] memory)
-    {
+    function getDelegatedLists(
+        address[] memory _badgeContracts,
+        uint256[] memory _tokenIds
+    ) public view returns (address[] memory) {
         require(_badgeContracts.length == _tokenIds.length, "BadgeManager.getDelegatedLists: arrays length mismatch");
 
         address[] memory delegatedAddresses = new address[](_badgeContracts.length);

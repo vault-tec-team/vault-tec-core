@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
-import "contracts/TimeLockPool.sol";
+import "contracts/TimeLockNonTransferablePool.sol";
 import "contracts/multiRewards/defi/MultiRewardsLiquidityMiningManagerV2.sol";
-import "contracts/multiRewards/defi/MultiRewardsTimeLockPoolV2.sol";
+import "contracts/multiRewards/defi/MultiRewardsTimeLockNonTransferablePoolV2.sol";
 
 /// @dev reader contract to easily fetch all relevant info for an account
 contract MultiRewardsViewV2 {
-
     struct Data {
         uint256 pendingRewards;
         Pool[] pools;
@@ -35,11 +34,11 @@ contract MultiRewardsViewV2 {
     }
 
     MultiRewardsLiquidityMiningManagerV2 public immutable liquidityMiningManager;
-    TimeLockPool public immutable escrowPool;
+    TimeLockNonTransferablePool public immutable escrowPool;
 
     constructor(address _liquidityMiningManager, address _escrowPool) {
         liquidityMiningManager = MultiRewardsLiquidityMiningManagerV2(_liquidityMiningManager);
-        escrowPool = TimeLockPool(_escrowPool);
+        escrowPool = TimeLockNonTransferablePool(_escrowPool);
     }
 
     function fetchData(address _account) external view returns (Data memory result) {
@@ -54,10 +53,11 @@ contract MultiRewardsViewV2 {
 
         result.pools = new Pool[](pools.length);
 
-        for(uint256 i = 0; i < pools.length; i ++) {
-
-            MultiRewardsTimeLockPoolV2 poolContract = MultiRewardsTimeLockPoolV2(address(pools[i].poolContract));
-            address reward  = address(liquidityMiningManager.reward());
+        for (uint256 i = 0; i < pools.length; i++) {
+            MultiRewardsTimeLockNonTransferablePoolV2 poolContract = MultiRewardsTimeLockNonTransferablePoolV2(
+                address(pools[i].poolContract)
+            );
+            address reward = address(liquidityMiningManager.reward());
 
             result.pools[i] = Pool({
                 poolAddress: address(pools[i].poolContract),
@@ -71,11 +71,10 @@ contract MultiRewardsViewV2 {
                 deposits: new Deposit[](poolContract.getDepositsOfLength(_account))
             });
 
-           
-            MultiRewardsTimeLockPoolV2.Deposit[] memory deposits = poolContract.getDepositsOf(_account);
+            MultiRewardsTimeLockNonTransferablePoolV2.Deposit[] memory deposits = poolContract.getDepositsOf(_account);
 
-            for(uint256 j = 0; j < result.pools[i].deposits.length; j ++) {
-                MultiRewardsTimeLockPoolV2.Deposit memory deposit = deposits[j];
+            for (uint256 j = 0; j < result.pools[i].deposits.length; j++) {
+                MultiRewardsTimeLockNonTransferablePoolV2.Deposit memory deposit = deposits[j];
                 result.pools[i].deposits[j] = Deposit({
                     amount: deposit.amount,
                     start: deposit.start,
@@ -83,8 +82,6 @@ contract MultiRewardsViewV2 {
                     multiplier: poolContract.getMultiplier(deposit.end - deposit.start)
                 });
             }
-
-            
         }
 
         result.escrowPool = Pool({
@@ -99,17 +96,16 @@ contract MultiRewardsViewV2 {
             deposits: new Deposit[](escrowPool.getDepositsOfLength(_account))
         });
 
-        TimeLockPool.Deposit[] memory deposits = escrowPool.getDepositsOf(_account);
+        TimeLockNonTransferablePool.Deposit[] memory deposits = escrowPool.getDepositsOf(_account);
 
-        for(uint256 j = 0; j < result.escrowPool.deposits.length; j ++) {
-            TimeLockPool.Deposit memory deposit = deposits[j];
+        for (uint256 j = 0; j < result.escrowPool.deposits.length; j++) {
+            TimeLockNonTransferablePool.Deposit memory deposit = deposits[j];
             result.escrowPool.deposits[j] = Deposit({
                 amount: deposit.amount,
                 start: deposit.start,
                 end: deposit.end,
                 multiplier: escrowPool.getMultiplier(deposit.end - deposit.start)
             });
-        } 
-
+        }
     }
 }

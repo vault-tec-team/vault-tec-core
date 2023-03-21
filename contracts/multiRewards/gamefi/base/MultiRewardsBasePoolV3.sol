@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "contracts/multiRewards/interfaces/IMultiRewardsBasePool.sol";
 import "contracts/multiRewards/base/AbstractMultiRewards.sol";
-import "contracts/interfaces/ITimeLockPool.sol";
+import "contracts/interfaces/ITimeLockNonTransferablePool.sol";
 import "contracts/base/TokenSaver.sol";
 
 abstract contract MultiRewardsBasePoolV3 is
@@ -211,7 +211,7 @@ abstract contract MultiRewardsBasePoolV3 is
         uint256 escrowedRewardAmount = (rewardAmount * escrowPortions[_reward]) / 1e18;
         uint256 nonEscrowedRewardAmount = rewardAmount - escrowedRewardAmount;
 
-        ITimeLockPool escrowPool = ITimeLockPool(escrowPools[_reward]);
+        ITimeLockNonTransferablePool escrowPool = ITimeLockNonTransferablePool(escrowPools[_reward]);
         if (escrowedRewardAmount != 0 && address(escrowPool) != address(0)) {
             escrowPool.deposit(escrowedRewardAmount, escrowDurations[_reward], _receiver);
         }

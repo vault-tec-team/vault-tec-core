@@ -2,7 +2,7 @@
 pragma solidity 0.8.7;
 
 import "./LiquidityMiningManager.sol";
-import "./TimeLockPool.sol";
+import "./TimeLockNonTransferablePool.sol";
 
 /// @dev reader contract to easily fetch all relevant info for an account
 contract View {
@@ -33,11 +33,11 @@ contract View {
     }
 
     LiquidityMiningManager public immutable liquidityMiningManager;
-    TimeLockPool public immutable escrowPool;
+    TimeLockNonTransferablePool public immutable escrowPool;
 
     constructor(address _liquidityMiningManager, address _escrowPool) {
         liquidityMiningManager = LiquidityMiningManager(_liquidityMiningManager);
-        escrowPool = TimeLockPool(_escrowPool);
+        escrowPool = TimeLockNonTransferablePool(_escrowPool);
     }
 
     function fetchData(address _account) external view returns (Data memory result) {
@@ -53,7 +53,7 @@ contract View {
         result.pools = new Pool[](pools.length);
 
         for (uint256 i = 0; i < pools.length; i++) {
-            TimeLockPool poolContract = TimeLockPool(address(pools[i].poolContract));
+            TimeLockNonTransferablePool poolContract = TimeLockNonTransferablePool(address(pools[i].poolContract));
 
             result.pools[i] = Pool({
                 poolAddress: address(pools[i].poolContract),
@@ -67,10 +67,10 @@ contract View {
                 deposits: new Deposit[](poolContract.getDepositsOfLength(_account))
             });
 
-            TimeLockPool.Deposit[] memory deposits = poolContract.getDepositsOf(_account);
+            TimeLockNonTransferablePool.Deposit[] memory deposits = poolContract.getDepositsOf(_account);
 
             for (uint256 j = 0; j < result.pools[i].deposits.length; j++) {
-                TimeLockPool.Deposit memory deposit = deposits[j];
+                TimeLockNonTransferablePool.Deposit memory deposit = deposits[j];
                 result.pools[i].deposits[j] = Deposit({
                     amount: deposit.amount,
                     start: deposit.start,
@@ -92,10 +92,10 @@ contract View {
             deposits: new Deposit[](escrowPool.getDepositsOfLength(_account))
         });
 
-        TimeLockPool.Deposit[] memory deposits = escrowPool.getDepositsOf(_account);
+        TimeLockNonTransferablePool.Deposit[] memory deposits = escrowPool.getDepositsOf(_account);
 
         for (uint256 j = 0; j < result.escrowPool.deposits.length; j++) {
-            TimeLockPool.Deposit memory deposit = deposits[j];
+            TimeLockNonTransferablePool.Deposit memory deposit = deposits[j];
             result.escrowPool.deposits[j] = Deposit({
                 amount: deposit.amount,
                 start: deposit.start,

@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "contracts/multiRewards/interfaces/IMultiRewardsBasePool.sol";
-import "contracts/interfaces/ITimeLockPool.sol";
+import "contracts/interfaces/ITimeLockNonTransferablePool.sol";
 
 import "contracts/multiRewards/base/AbstractMultiRewards.sol";
 import "contracts/base/TokenSaver.sol";
@@ -122,11 +122,7 @@ abstract contract MultiRewardsBasePoolV2 is
         }
     }
 
-    function _transfer(
-        address _from,
-        address _to,
-        uint256 _value
-    ) internal virtual override {
+    function _transfer(address _from, address _to, uint256 _value) internal virtual override {
         super._transfer(_from, _to, _value);
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             address reward = rewardTokens[i];
@@ -192,7 +188,7 @@ abstract contract MultiRewardsBasePoolV2 is
         uint256 escrowedRewardAmount = (rewardAmount * escrowPortions[_reward]) / 1e18;
         uint256 nonEscrowedRewardAmount = rewardAmount - escrowedRewardAmount;
 
-        ITimeLockPool escrowPool = ITimeLockPool(escrowPools[_reward]);
+        ITimeLockNonTransferablePool escrowPool = ITimeLockNonTransferablePool(escrowPools[_reward]);
         if (escrowedRewardAmount != 0 && address(escrowPool) != address(0)) {
             escrowPool.deposit(escrowedRewardAmount, escrowDurations[_reward], _receiver);
         }
