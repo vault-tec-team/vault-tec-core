@@ -11,8 +11,9 @@ contract BadgeManager is AccessControlEnumerable {
 
     BadgeData[] public badgesList;
 
-    mapping(address => Delegate[]) public delegatesOf;
-    mapping(address => mapping(uint256 => address)) public delegatedList;
+    mapping(address => Delegation[]) public delegationsOfDelegate; // delegate => { owner, badge => { badge address, id } }
+    mapping(address => mapping(address => mapping(uint256 => address))) public delegatedListByDelegate; // delegate => badge address => id => owner
+    mapping(address => mapping(address => mapping(uint256 => address))) public delegatedListByOwner; //owner => badge address => id => delegator
 
     mapping(address => bool) public ineligibleList;
 
@@ -28,7 +29,7 @@ contract BadgeManager is AccessControlEnumerable {
         uint256 tokenId;
     }
 
-    struct Delegate {
+    struct Delegation {
         address owner;
         BadgeData badge;
     }
@@ -45,8 +46,8 @@ contract BadgeManager is AccessControlEnumerable {
             return badgeMultiplier;
         }
 
-        for (uint256 index = 0; index < delegatesOf[_depositorAddress].length; index++) {
-            Delegate memory delegateBadge = delegatesOf[_depositorAddress][index];
+        for (uint256 index = 0; index < delegationsOfDelegate[_depositorAddress].length; index++) {
+            Delegation memory delegateBadge = delegationsOfDelegate[_depositorAddress][index];
             BadgeData memory badge = delegateBadge.badge;
             if (IERC1155(badge.contractAddress).balanceOf(delegateBadge.owner, badge.tokenId) > 0) {
                 badgeMultiplier = badgeMultiplier + (badgesBoostedMapping[badge.contractAddress][badge.tokenId]);
@@ -61,23 +62,30 @@ contract BadgeManager is AccessControlEnumerable {
         _;
     }
 
-    function delegateBadgeTo(address _badgeContract, uint256 _tokenId, address _delegator) external {
+    function delegateBadgeTo(address _badgeContract, uint256 _tokenId, address _delegate) external {
         require(inBadgesList[_badgeContract][_tokenId], "BadgeManager.delegateBadgeTo: invalid badge");
-        require(
-            delegatedList[_badgeContract][_tokenId] == address(0),
-            "BadgeManager.delegateBadgeTo: already delegated"
-        );
 
         require(
             IERC1155(_badgeContract).balanceOf(msg.sender, _tokenId) > 0,
             "BadgeManager.delegateBadgeTo: You do not own the badge"
         );
 
-        delegatesOf[_delegator].push(
-            Delegate({ owner: msg.sender, badge: BadgeData({ contractAddress: _badgeContract, tokenId: _tokenId }) })
+        require(
+            delegatedListByOwner[msg.sender][_badgeContract][_tokenId] == address(0),
+            "BadgeManager.delegateBadgeTo: already delegated"
         );
 
-        delegatedList[_badgeContract][_tokenId] = _delegator;
+        require(
+            delegatedListByDelegate[_delegate][_badgeContract][_tokenId] == address(0),
+            "BadgeManager.delegateBadgeTo: delegate has already been delegated for the same badge"
+        );
+
+        delegationsOfDelegate[_delegate].push(
+            Delegation({ owner: msg.sender, badge: BadgeData({ contractAddress: _badgeContract, tokenId: _tokenId }) })
+        );
+
+        delegatedListByOwner[msg.sender][_badgeContract][_tokenId] = _delegate;
+        delegatedListByDelegate[_delegate][_badgeContract][_tokenId] = msg.sender;
     }
 
     function addBadge(address _badgeAddress, uint256 _id, uint256 _boostedNumber) external onlyAdmin {
@@ -158,27 +166,33 @@ contract BadgeManager is AccessControlEnumerable {
         emit IneligibleListRemoved(_address);
     }
 
-    function getDelegatesOf(address _account) public view returns (Delegate[] memory) {
-        return delegatesOf[_account];
+    function getDelegationsOfDelegate(address _delegate) public view returns (Delegation[] memory) {
+        return delegationsOfDelegate[_delegate];
     }
 
-    function getDelegatesOfLength(address _account) public view returns (uint256) {
-        return delegatesOf[_account].length;
+    function getDelegationsOfDelegateLength(address _delegate) public view returns (uint256) {
+        return delegationsOfDelegate[_delegate].length;
     }
 
-    function getDelegatedList(address _badgeContract, uint256 _tokenId) public view returns (address) {
-        return delegatedList[_badgeContract][_tokenId];
+    function getDelegateByBadge(
+        address _owner,
+        address _badgeContract,
+        uint256 _tokenId
+    ) public view returns (address) {
+        return delegatedListByOwner[_owner][_badgeContract][_tokenId];
     }
 
-    function getDelegatedLists(
+    function getDelegateByBadges(
+        address[] memory _ownerAddresses,
         address[] memory _badgeContracts,
         uint256[] memory _tokenIds
     ) public view returns (address[] memory) {
-        require(_badgeContracts.length == _tokenIds.length, "BadgeManager.getDelegatedLists: arrays length mismatch");
+        require(_badgeContracts.length == _tokenIds.length, "BadgeManager.getDelegateByBadges: arrays length mismatch");
+        require(_ownerAddresses.length == _tokenIds.length, "BadgeManager.getDelegateByBadges: arrays length mismatch");
 
         address[] memory delegatedAddresses = new address[](_badgeContracts.length);
         for (uint256 i = 0; i < _badgeContracts.length; i++) {
-            delegatedAddresses[i] = delegatedList[_badgeContracts[i]][_tokenIds[i]];
+            delegatedAddresses[i] = delegatedListByOwner[_ownerAddresses[i]][_badgeContracts[i]][_tokenIds[i]];
         }
         return delegatedAddresses;
     }

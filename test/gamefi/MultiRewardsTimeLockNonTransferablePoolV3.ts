@@ -34,6 +34,7 @@ describe("TimeLockNonTransferablePool - MultiRewards V3", function () {
     let account2: SignerWithAddress;
     let account3: SignerWithAddress;
     let account4: SignerWithAddress;
+    let newBadgeManager: SignerWithAddress;
     let signers: SignerWithAddress[];
 
     let timeLockPool: MultiRewardsTimeLockNonTransferablePoolV3;
@@ -59,6 +60,7 @@ describe("TimeLockNonTransferablePool - MultiRewards V3", function () {
             account2,
             account3,
             account4,
+            newBadgeManager,
             ...signers
         ] = await hre.ethers.getSigners();
 
@@ -701,6 +703,35 @@ describe("TimeLockNonTransferablePool - MultiRewards V3", function () {
                 await expect(timeLockPool.connect(account1).updateKickRewardIncentive(NEW_KICK_REWARD_INCENTIVE))
                     .to.emit(timeLockPool, 'KickRewardIncentiveUpdated')
                     .withArgs(NEW_KICK_REWARD_INCENTIVE);
+            })
+        })
+    });
+    describe("updateBadgeManager", function () {
+        it("cannot updateBadgeManager if not admin", async function () {
+            await expect(timeLockPool.connect(account1).updateBadgeManager(newBadgeManager.address)).to.be.revertedWith(
+                "MultiRewardsBasePoolV3: only admin"
+            );
+        })
+
+        context("With admin role", function () {
+            beforeEach(async () => {
+                let adminRole = await timeLockPool.ADMIN_ROLE();
+                await timeLockPool.connect(deployer).grantRole(adminRole, account1.address);
+            })
+            it("cannot update badgeManager to zero address", async function () {
+                await expect(timeLockPool.connect(account1).updateBadgeManager(ZERO_ADDRESS)).to.be.revertedWith(
+                    "MultiRewardsTimeLockNonTransferablePoolV3.updateBadgeManager: badge manager cannot be zero address"
+                );
+            })
+            it("can successfully update badge manager", async function () {
+                expect(await timeLockPool.badgeManager()).to.eq(badgeManager.address);
+                await timeLockPool.connect(account1).updateBadgeManager(newBadgeManager.address);
+                expect(await timeLockPool.badgeManager()).to.eq(newBadgeManager.address);
+            })
+            it("can emit correct event for new badge manager", async function () {
+                await expect(timeLockPool.connect(account1).updateBadgeManager(newBadgeManager.address))
+                    .to.emit(timeLockPool, 'BadgeManagerUpdated')
+                    .withArgs(newBadgeManager.address);
             })
         })
     });

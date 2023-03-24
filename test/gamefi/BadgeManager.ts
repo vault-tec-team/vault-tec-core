@@ -351,6 +351,8 @@ describe("BadgeManger", function () {
             await badgeToken2.mint(account1.address, "1", "1");
             await badgeToken2.mint(account1.address, "2", "1");
 
+            await badgeToken1.mint(account2.address, "1", "1");
+
             await badgeManager.connect(deployer).addBadge(badgeToken3.address, 1, BOOSTED_NUMBER_BADGE_3);
             await badgeManager.connect(deployer).addBadge(badgeToken1.address, 1, BOOSTED_NUMBER_BADGE_1);
             await badgeManager.connect(deployer).addBadge(badgeToken2.address, 1, BOOSTED_NUMBER_BADGE_2);
@@ -361,7 +363,7 @@ describe("BadgeManger", function () {
         })
 
         it("cannot delegate badge if do not own badge", async () => {
-            await expect(badgeManager.connect(account2).delegateBadgeTo(badgeToken1.address, 1, account1.address)).to.be.revertedWith("BadgeManager.delegateBadgeTo: You do not own the badge");
+            await expect(badgeManager.connect(account3).delegateBadgeTo(badgeToken1.address, 1, account1.address)).to.be.revertedWith("BadgeManager.delegateBadgeTo: You do not own the badge");
         })
 
         it("cannot delegate badge if already delegated", async () => {
@@ -376,7 +378,7 @@ describe("BadgeManger", function () {
             const sTokenBalanceBefore = await timeLockPool.balanceOf(account1.address);
 
             await badgeManager.connect(account1).delegateBadgeTo(badgeToken1.address, 1, account1.address);
-            expect(await badgeManager.connect(account1).getDelegatedList(badgeToken1.address, 1)).to.eq(account1.address);
+            expect(await badgeManager.connect(account1).getDelegateByBadge(account1.address, badgeToken1.address, 1)).to.eq(account1.address);
 
             await timeLockPool.connect(account1).deposit(DEPOSIT_AMOUNT, MAX_LOCK_DURATION, account1.address);
 
@@ -416,7 +418,7 @@ describe("BadgeManger", function () {
             const sTokenBalanceBefore_account2 = await timeLockPool.balanceOf(account2.address);
 
             await badgeManager.connect(account1).delegateBadgeTo(badgeToken1.address, 1, account2.address);
-            expect(await badgeManager.connect(account1).getDelegatedList(badgeToken1.address, 1)).to.eq(account2.address);
+            expect(await badgeManager.connect(account1).getDelegateByBadge(account1.address, badgeToken1.address, 1)).to.eq(account2.address);
 
             await timeLockPool.connect(account1).deposit(DEPOSIT_AMOUNT, MAX_LOCK_DURATION, account1.address);
             await timeLockPool.connect(account2).deposit(DEPOSIT_AMOUNT, MAX_LOCK_DURATION, account2.address);
@@ -438,12 +440,12 @@ describe("BadgeManger", function () {
             const sTokenBalanceBefore = await timeLockPool.balanceOf(account1.address);
 
             await badgeManager.connect(account1).delegateBadgeTo(badgeToken1.address, 1, account1.address);
-            expect(await badgeManager.connect(account1).getDelegatedList(badgeToken1.address, 1)).to.eq(account1.address);
+            expect(await badgeManager.connect(account1).getDelegateByBadge(account1.address, badgeToken1.address, 1)).to.eq(account1.address);
 
             await badgeManager.connect(account1).delegateBadgeTo(badgeToken2.address, 1, account1.address);
-            expect(await badgeManager.connect(account1).getDelegatedList(badgeToken2.address, 1)).to.eq(account1.address);
+            expect(await badgeManager.connect(account1).getDelegateByBadge(account1.address, badgeToken2.address, 1)).to.eq(account1.address);
 
-            const delegatedLists = await badgeManager.connect(account1).getDelegatedLists([badgeToken1.address, badgeToken2.address], [1, 1]);
+            const delegatedLists = await badgeManager.connect(account1).getDelegateByBadges([account1.address, account1.address], [badgeToken1.address, badgeToken2.address], [1, 1]);
             expect(delegatedLists[0]).to.eq(account1.address);
             expect(delegatedLists[1]).to.eq(account1.address);
 
@@ -577,5 +579,40 @@ describe("BadgeManger", function () {
             expect(sTokenBalance5).to.eq(0);
             expect(dpBalanceAfter).to.eq(dpBalanceBefore.add(DEPOSIT_AMOUNT.mul(4)));
         })
+
+        it("can delegate for different address for the same token id", async () => {
+            await badgeManager.connect(account1).delegateBadgeTo(badgeToken1.address, 1, account1.address);
+            await badgeManager.connect(account2).delegateBadgeTo(badgeToken1.address, 1, account2.address);
+            const delegatedLists = await badgeManager.connect(account1).getDelegateByBadges([account1.address, account2.address], [badgeToken1.address, badgeToken1.address], [1, 1]);
+            expect(delegatedLists[0]).to.eq(account1.address);
+            expect(delegatedLists[1]).to.eq(account2.address);
+        })
+
+        it("cannot delegate if target address already delegated for the same token ID", async () => {
+            await badgeManager.connect(account1).delegateBadgeTo(badgeToken1.address, 1, account1.address);
+            await expect(badgeManager.connect(account2).delegateBadgeTo(badgeToken1.address, 1, account1.address)).to.be.revertedWith("BadgeManager.delegateBadgeTo: delegate has already been delegated for the same badge");
+        })
+
+        it("can delegate for different address for the same token id, others first, self revert", async () => {
+            await badgeManager.connect(account2).delegateBadgeTo(badgeToken1.address, 1, account1.address);
+            await expect(badgeManager.connect(account1).delegateBadgeTo(badgeToken1.address, 1, account1.address)).to.be.revertedWith("BadgeManager.delegateBadgeTo: delegate has already been delegated for the same badge");
+            await badgeManager.connect(account1).delegateBadgeTo(badgeToken1.address, 1, account2.address);
+
+            const delegatedLists = await badgeManager.connect(account1).getDelegateByBadges([account1.address, account2.address], [badgeToken1.address, badgeToken1.address], [1, 1]);
+            expect(delegatedLists[0]).to.eq(account2.address);
+            expect(delegatedLists[1]).to.eq(account1.address);
+        })
+
+        it("can delegate for different address for the same token id, self first, others reject", async () => {
+            await badgeManager.connect(account1).delegateBadgeTo(badgeToken1.address, 1, account1.address);
+            await expect(badgeManager.connect(account2).delegateBadgeTo(badgeToken1.address, 1, account1.address)).to.be.revertedWith("BadgeManager.delegateBadgeTo: delegate has already been delegated for the same badge");
+            await badgeManager.connect(account2).delegateBadgeTo(badgeToken1.address, 1, account2.address);
+
+            const delegatedLists = await badgeManager.connect(account1).getDelegateByBadges([account1.address, account2.address], [badgeToken1.address, badgeToken1.address], [1, 1]);
+            expect(delegatedLists[0]).to.eq(account1.address);
+            expect(delegatedLists[1]).to.eq(account2.address);
+        })
+
+
     });
 });

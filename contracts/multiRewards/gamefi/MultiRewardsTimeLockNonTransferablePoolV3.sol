@@ -32,6 +32,7 @@ contract MultiRewardsTimeLockNonTransferablePoolV3 is MultiRewardsBasePoolV3, IT
     event MigrationTurnOff(address by);
     event GracePeriodUpdated(uint256 _gracePeriod);
     event KickRewardIncentiveUpdated(uint256 _kickRewardIncentive);
+    event BadgeManagerUpdated(address _badgeManager);
 
     struct Deposit {
         uint256 amount;
@@ -311,5 +312,14 @@ contract MultiRewardsTimeLockNonTransferablePoolV3 is MultiRewardsBasePoolV3, IT
         );
         kickRewardIncentive = _kickRewardIncentive;
         emit KickRewardIncentiveUpdated(_kickRewardIncentive);
+    }
+
+    function updateBadgeManager(address _badgeManager) external onlyAdmin {
+        require(
+            _badgeManager != address(0),
+            "MultiRewardsTimeLockNonTransferablePoolV3.updateBadgeManager: badge manager cannot be zero address"
+        );
+        badgeManager = IBadgeManager(_badgeManager);
+        emit BadgeManagerUpdated(_badgeManager);
     }
 }
